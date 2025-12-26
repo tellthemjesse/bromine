@@ -1,0 +1,10 @@
+/target
+/.cargo
+/.idea
+/.vscode
+/.zed
+
+/resources
+
+Cargo.lock
+bindings.rs
