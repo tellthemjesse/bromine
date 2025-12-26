@@ -2,12 +2,12 @@
 use gl;
 use nalgebra_glm::{Mat4, identity};
 use obj::TexturedVertex;
-use crate::ecs::world::OldWorld;
+use crate::ecs::world::EcsWorld;
 use crate::components::transform::Transform;
 use crate::components::renderable::Renderable;
 use crate::graphics::mesh::{Mesh, Texture};
 
-pub fn run(world: &OldWorld) {
+pub fn run(world: &EcsWorld) {
     // Get base view matrix
     let base_view_matrix: Mat4 = world.view_matrix.unwrap_or_else(|| {
         eprintln!("[Warning]: RenderSystem is missing view matrix. Identity matrix will be used");

@@ -1,9 +1,9 @@
-use crate::ecs::world::OldWorld;
+use crate::ecs::world::EcsWorld;
 use crate::tags::PhysicsTag;
 use crate::physics::rigid_body::RigidBody;
 use crate::components::transform::Transform;
 
-pub fn run(world: &mut OldWorld) {
+pub fn run(world: &mut EcsWorld) {
     let dt = world.delta_time;
     // Query for entities with PhysicsTag, RigidBody, and Transform components
     // Use the new generic query method!

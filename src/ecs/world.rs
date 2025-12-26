@@ -44,7 +44,7 @@ impl<T: Component> ComponentStorage for Vec<Option<T>> {
     }
 }
 
-pub struct OldWorld {
+pub struct EcsWorld {
     // Entity Management
     next_entity_id: usize,
     // Value is Box<dyn ComponentStorage> for type erasure
@@ -63,10 +63,10 @@ pub struct OldWorld {
     pub collider_cache: ColliderCache,
 }
 
-impl OldWorld {
+impl EcsWorld {
     // Create a new, empty World
     pub fn new() -> Self {
-        OldWorld {
+        EcsWorld {
             // Entities
             next_entity_id: 0,
             // Components storage

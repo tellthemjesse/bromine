@@ -2,7 +2,7 @@ use std::mem;
 use nalgebra_glm::identity;
 use crate::components::renderable::Renderable;
 use crate::components::transform::Transform;
-use crate::ecs::OldWorld;
+use crate::ecs::EcsWorld;
 use crate::physics::mass_influence::MassInfluence;
 use crate::physics::rigid_body::RigidBody;
 use crate::physics::spacetime_curvature::SpacetimeCurvature;
@@ -19,7 +19,7 @@ struct MassData {
     _padding: f32, // Ensure 32-byte alignment
 }
 
-pub fn run(world: &OldWorld) {
+pub fn run(world: &EcsWorld) {
     let view_matrix = world.view_matrix.unwrap_or(identity());
     let projection_matrix = world.projection_matrix.unwrap_or(identity());
     let resource_manager = &world.resource_manager;

@@ -31,7 +31,7 @@ use glutin_winit::DisplayBuilder;
 use nalgebra_glm::{perspective, vec3, Vec3};
 use obj::{load_obj, Position, TexturedVertex};
 // Workspace Crates
-use crate::ecs::world::OldWorld;
+use crate::ecs::world::EcsWorld;
 use crate::components::{
     renderable::Renderable,
     transform::Transform
@@ -83,7 +83,7 @@ const POSITIONED_CUBE: &[u8] = include_bytes!("../resources/models/positioned_cu
 pub struct ApplicationECS {
     windows: HashMap<WindowId, (Window, Surface<WindowSurface>, PossiblyCurrentContext)>,
     opengl_conf: Option<Config>,
-    world: OldWorld,
+    world: EcsWorld,
     timer: Instant,
     ecs_world: World,
     schedule: Schedule,
@@ -95,7 +95,7 @@ impl ApplicationECS {
         Ok(Self {
             windows: HashMap::new(),
             opengl_conf: None,
-            world: OldWorld::new(),
+            world: EcsWorld::new(),
             timer: Instant::now(),
             ecs_world: World::new(),
             schedule: Schedule::default(),

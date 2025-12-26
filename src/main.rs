@@ -18,6 +18,8 @@ mod camera;
 mod render;
 mod opengl_backend;
 
+mod types;
+
 use std::error::Error;
 use winit::event_loop::EventLoop;
 use application_ecs::ApplicationECS;

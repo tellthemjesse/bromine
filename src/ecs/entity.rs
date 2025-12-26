@@ -1,11 +1,11 @@
 use crate::ecs::component::Component;
-use crate::ecs::world::OldWorld;
+use crate::ecs::world::EcsWorld;
 
 pub type Entity = usize;
 
 pub struct EntityConstructor {
     entity: Entity,
-    operations: Vec<Box<dyn FnOnce(&mut OldWorld)>>,
+    operations: Vec<Box<dyn FnOnce(&mut EcsWorld)>>,
 }
 
 impl EntityConstructor {
@@ -19,13 +19,13 @@ impl EntityConstructor {
 
     pub fn with<T: Component + Send + Sync>(mut self, component: T) -> Self {  
         let entity = self.entity;
-        self.operations.push(Box::new(move |world: &mut OldWorld| {
+        self.operations.push(Box::new(move |world: &mut EcsWorld| {
             world.add_component(entity, component); 
         }));
         self
     }
 
-    pub fn apply(self, world: &mut OldWorld) {
+    pub fn apply(self, world: &mut EcsWorld) {
         println!("[Debug] Applying constructor for Entity#{}", self.entity);
         for op in self.operations {
             op(world);

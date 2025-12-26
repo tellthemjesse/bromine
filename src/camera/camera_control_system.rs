@@ -1,56 +1,50 @@
+use std::collections::HashSet;
 use winit::keyboard::KeyCode;
+
 use nalgebra_glm::{normalize, vec3, cross, Vec3};
 
-use crate::ecs::OldWorld;
-use crate::components::transform::Transform;
+use crate::types::{EcsWorld, Transform, RigidBody};
 use crate::tags::CameraTag;
-use crate::constants::*;
-use crate::physics::rigid_body::RigidBody;
+use crate::constants::{
+    MOUSE_SENSITIVITY, TARGET_PITCH_ANGLE,
+    TARGET_ROLL_ANGLE,INTERPOLATION_SPEED,
+    CAMERA_SPEED,
+};
 
-pub fn run(world: &mut OldWorld) {
+pub fn run(world: &mut EcsWorld) {
     let dt = world.delta_time;
     let mouse_delta = world.input_state.mouse_delta;
-    let pressed_keys = world.input_state.pressed_keys.clone(); // Clone needed for iteration
+    let pressed_keys = world.input_state.pressed_keys.clone();
 
-    // --- Update Camera Angles (Yaw/Pitch from mouse) ---
+    // apply mouse movement
     world.camera_state.update_angles(mouse_delta.0, -mouse_delta.1, MOUSE_SENSITIVITY);
     let yaw = world.camera_state.yaw;
     let pitch = world.camera_state.pitch;
-    
-    // --- Determine Target Roll & Interpolate --- (Uses constants)
-    let target_roll = if pressed_keys.contains(&KeyCode::KeyD) {
-        -TARGET_ROLL_ANGLE
-    } else if pressed_keys.contains(&KeyCode::KeyA) {
-        TARGET_ROLL_ANGLE
-    } else {
-        0.0 
-    };
+
+    // get roll direction
+    let target_roll = sgn_roll(&pressed_keys) * TARGET_ROLL_ANGLE;
+
     let roll_diff = target_roll - world.camera_state.roll;
     world.camera_state.roll += roll_diff * INTERPOLATION_SPEED * dt;
 
-    // --- Determine Target Temporary Pitch & Interpolate (Uses constants) ---
-    let target_visual_pitch = if pressed_keys.contains(&KeyCode::KeyW) {
-        -TARGET_PITCH_ANGLE
-    } else if pressed_keys.contains(&KeyCode::KeyS) {
-        TARGET_PITCH_ANGLE
-    } else {
-        0.0
-    };
+    // get pitch direction
+    let target_visual_pitch = sgn_pitch(&pressed_keys) * TARGET_PITCH_ANGLE;
+
     let visual_pitch_diff = target_visual_pitch - world.camera_state.visual_pitch;
     world.camera_state.visual_pitch += visual_pitch_diff * INTERPOLATION_SPEED * dt;
 
-    // Clear transient input state *after* using it for everything
+    // clear input state
     world.input_state.clear_transient_state();
 
-    // Find the camera entity and get its mutable transform and rigid body
+    // find camera entity components
     let mut camera_components_opt = None;
     for (transform, rigid_body, _tag) in world.query_mut::<(&mut Transform, &mut RigidBody, &CameraTag)>() {
         camera_components_opt = Some((transform, rigid_body));
-        break; 
+        break;
     }
-    
+
     if let Some((transform, rigid_body)) = camera_components_opt {
-        // --- Calculate Direction Vectors (Yaw/Pitch Only) for Movement ---
+        // calculate direction vectors
         let move_forward = vec3(
             yaw.cos() * pitch.cos(),
             pitch.sin(),
@@ -59,7 +53,7 @@ pub fn run(world: &mut OldWorld) {
         let move_forward = normalize(&move_forward);
         let move_right = normalize(&cross(&move_forward, &vec3(0.0, 1.0, 0.0)));
 
-        // --- Determine Desired Movement Direction from Input ---
+        // determine desired movement direction
         let mut desired_movement_direction = Vec3::zeros();
 
         if pressed_keys.contains(&KeyCode::KeyW) { desired_movement_direction += move_forward; }
@@ -69,18 +63,28 @@ pub fn run(world: &mut OldWorld) {
         if pressed_keys.contains(&KeyCode::Space) { desired_movement_direction += vec3(0.0, 1.0, 0.0); }
         if pressed_keys.contains(&KeyCode::ShiftLeft) { desired_movement_direction -= vec3(0.0, 1.0, 0.0); }
 
-        // --- Update RigidBody's Velocity based on Input ---
+        // update velocity
         if desired_movement_direction != Vec3::zeros() {
-            // Normalize the direction and scale by CAMERA_SPEED to set the target velocity
             rigid_body.velocity = normalize(&desired_movement_direction) * CAMERA_SPEED;
         } else {
-            // No input, so camera should stop
             rigid_body.velocity = Vec3::zeros();
         }
 
-        // --- Update Camera Position using RigidBody's Velocity ---
+        // update position
         transform.position += rigid_body.velocity * dt;
     } else {
-        eprintln!("CameraControlSystem Error: No entity found with Transform, RigidBody, and CameraTag!");
+        eprintln!("[Error]: Couldn't find camera transform");
     }
-} 
+}
+
+fn sgn_pitch(keys: &HashSet<KeyCode>) -> f32 {
+    if keys.contains(&KeyCode::KeyW) { -1.0 }
+    else if keys.contains(&KeyCode::KeyS) { 1.0 }
+    else { 0.0 }
+}
+
+fn sgn_roll(keys: &HashSet<KeyCode>) -> f32 {
+    if keys.contains(&KeyCode::KeyD) { -1.0 }
+    else if keys.contains(&KeyCode::KeyA) { 1.0 }
+    else { 0.0 }
+}

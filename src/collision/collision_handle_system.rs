@@ -2,12 +2,12 @@ use std::collections::{HashMap, HashSet};
 use nalgebra_glm::{Vec3, dot, normalize, reflect, reflect_vec};
 use std::ops::{AddAssign, Div, Mul};
 use crate::collision::Collider3D;
-use crate::ecs::OldWorld;
+use crate::ecs::EcsWorld;
 use crate::components::transform::Transform;
 use crate::ecs::entity::Entity;
 use crate::physics::rigid_body::RigidBody;
 
-pub fn run(world: &mut OldWorld) {
+pub fn run(world: &mut EcsWorld) {
     let collision_pairs = world.collider_cache.clone();
     let dt = world.delta_time;
 

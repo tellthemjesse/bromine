@@ -4,4 +4,4 @@ pub mod world;
 pub mod query;
 mod storage;
 
-pub use world::OldWorld;
+pub use world::EcsWorld;

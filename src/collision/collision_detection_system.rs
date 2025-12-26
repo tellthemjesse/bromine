@@ -6,9 +6,9 @@ use crate::tags::StaticObjectTag;
 use crate::components::transform::Transform;
 use crate::ecs::entity::Entity;
 // TODO: Shorten imports
-use crate::ecs::OldWorld;
+use crate::ecs::EcsWorld;
 
-pub fn run(world: &mut OldWorld) {
+pub fn run(world: &mut EcsWorld) {
     let mut collider_cache = world.collider_cache.clone();
 
     let colliders: Vec<(Entity, &Collider3D)> = world

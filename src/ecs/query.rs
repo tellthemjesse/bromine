@@ -1,6 +1,6 @@
 use crate::ecs::component::Component;
 use crate::ecs::entity::Entity;
-use crate::ecs::world::OldWorld;
+use crate::ecs::world::EcsWorld;
 use std::any::TypeId;
 use std::marker::PhantomData;
 use std::ptr::NonNull; // For mutable borrows
@@ -283,7 +283,7 @@ pub struct QueryIter<'w, Q: WorldQuery<'w>> {
 
 impl<'w, Q: WorldQuery<'w>> QueryIter<'w, Q> {
     // Internal constructor called by World::query
-    pub(crate) fn new(world: &'w OldWorld) -> Self {
+    pub(crate) fn new(world: &'w EcsWorld) -> Self {
         // First, check for incompatible accesses within the query itself
         Q::check_query_access(); 
         
@@ -350,7 +350,7 @@ pub struct QueryIterMut<'w, Q: WorldQuery<'w>> {
 impl<'w, Q: WorldQuery<'w>> QueryIterMut<'w, Q> {
     // Internal constructor called by World::query_mut
     // Safety: Caller must ensure World is not borrowed elsewhere incompatibly.
-    pub(crate) fn new(world: &'w mut OldWorld) -> Self {
+    pub(crate) fn new(world: &'w mut EcsWorld) -> Self {
         Q::check_query_access(); 
         let required_types = Q::get_component_type_ids();
         // Need to borrow immutably first to call query_entities, then get mutable pointer

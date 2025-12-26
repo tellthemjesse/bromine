@@ -4,11 +4,11 @@ use nalgebra_glm::{identity, Mat4, vec3, scaling, translation, quat_to_mat4};
 use crate::collision::Collider3D;
 use crate::components::renderable::Renderable;
 use crate::components::transform::Transform;
-use crate::ecs::OldWorld;
+use crate::ecs::EcsWorld;
 use crate::graphics::mesh::Texture;
 use crate::tags::DebugTag;
 
-pub fn run(world: &OldWorld) {
+pub fn run(world: &EcsWorld) {
     // Get view matrix
     let view_matrix: Mat4 = world.view_matrix.unwrap_or_else(|| {
         eprintln!("[Warning]: RenderSystem is missing view matrix. Identity matrix will be used");

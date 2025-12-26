@@ -1,4 +1,4 @@
-use crate::ecs::world::OldWorld;
+use crate::ecs::world::EcsWorld;
 use crate::tags::PhysicsTag;
 use crate::physics::rigid_body::RigidBody;
 use crate::components::transform::Transform;
@@ -7,7 +7,7 @@ use nalgebra_glm::normalize;
 
 const TINY_NUMBER: f32 = 1e-6;
 
-pub fn run(world: &mut OldWorld) {
+pub fn run(world: &mut EcsWorld) {
     let mut physics_entities: Vec<(&Transform, &mut RigidBody)> = world.query_mut::<(&Transform, &mut RigidBody, &PhysicsTag)>()
         .map(|(transform, rb, _)| (transform, rb))
         .collect();
