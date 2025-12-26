@@ -1,12 +1,4 @@
-use crate::tags::CameraTag;
-use crate::collision::Collider3D;
-use crate::tags::MovingObjectTag;
-use crate::components::renderable::Renderable;
-use crate::tags::StaticObjectTag;
-use crate::components::transform::Transform;
-use crate::ecs::entity::Entity;
-// TODO: Shorten imports
-use crate::ecs::EcsWorld;
+use crate::types::{EcsWorld, Entity, Collider3D};
 
 pub fn run(world: &mut EcsWorld) {
     let mut collider_cache = world.collider_cache.clone();
@@ -23,8 +15,6 @@ pub fn run(world: &mut EcsWorld) {
             }
         }
     }
-
-    //println!("Cache: {:?}", collider_cache);
 
     world.collider_cache = collider_cache;
 }

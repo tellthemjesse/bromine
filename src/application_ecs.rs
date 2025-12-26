@@ -1,14 +1,10 @@
-// --- Imports ---
-// Standard Library
 use std::num::NonZeroU32;
 use std::time::Instant;
 use std::error::Error;
 use std::path::Path;
 use std::collections::HashMap;
 use bevy_ecs::prelude::{Schedule, World};
-//use crate::opengl_bindings as gl;
 
-// Crates
 use gl::{COLOR_BUFFER_BIT, DEPTH_BUFFER_BIT, DEPTH_TEST, DepthFunc, Enable, LESS, Viewport};
 
 use winit::{
@@ -36,7 +32,7 @@ use crate::components::{
     renderable::Renderable,
     transform::Transform
 };
-use crate::collision::Collider3D;
+use crate::types::Collider3D;
 use crate::tags::{DebugTag, MovingObjectTag, SpacetimeMeshTag};
 use crate::systems;
 use crate::graphics::{

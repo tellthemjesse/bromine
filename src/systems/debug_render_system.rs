@@ -1,11 +1,9 @@
-use std::any::TypeId;
-use gl::{BLEND, BlendFunc, DEPTH_TEST, Disable, Enable, FILL, FRONT_AND_BACK, LINE, ONE_MINUS_SRC_ALPHA, POLYGON_MODE, PolygonMode, SRC_ALPHA};
-use nalgebra_glm::{identity, Mat4, vec3, scaling, translation, quat_to_mat4};
-use crate::collision::Collider3D;
+use gl::{DEPTH_TEST, Disable, Enable, FILL, FRONT_AND_BACK, LINE, PolygonMode};
+use nalgebra_glm::{identity, Mat4, vec3};
+use crate::types::Collider3D;
 use crate::components::renderable::Renderable;
 use crate::components::transform::Transform;
 use crate::ecs::EcsWorld;
-use crate::graphics::mesh::Texture;
 use crate::tags::DebugTag;
 
 pub fn run(world: &EcsWorld) {

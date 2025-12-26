@@ -1,15 +1,9 @@
+use crate::types::{EcsWorld, Entity, Transform, RigidBody, Collider3D};
 use std::collections::{HashMap, HashSet};
-use nalgebra_glm::{Vec3, dot, normalize, reflect, reflect_vec};
-use std::ops::{AddAssign, Div, Mul};
-use crate::collision::Collider3D;
-use crate::ecs::EcsWorld;
-use crate::components::transform::Transform;
-use crate::ecs::entity::Entity;
-use crate::physics::rigid_body::RigidBody;
+use nalgebra_glm::{Vec3, dot, reflect_vec};
 
 pub fn run(world: &mut EcsWorld) {
     let collision_pairs = world.collider_cache.clone();
-    let dt = world.delta_time;
 
     let mut velocity_map: HashMap<Entity, Vec3> = HashMap::new();
     let mut displacement_map: HashMap<Entity, Vec3> = HashMap::new();
@@ -36,13 +30,13 @@ pub fn run(world: &mut EcsWorld) {
                     let velocity_2_unchecked = reflect_vec(&velocity_2, &surface_normal);
 
                     let velocity_1 = if rb_1.mass.gt(&0.0) {
-                        velocity_1_unchecked.mul(impact_restitution).div(rb_1.mass)
+                        velocity_1_unchecked * impact_restitution / rb_1.mass
                     } else {
                         velocity_1_unchecked
                     };
 
                     let velocity_2 = if rb_2.mass.gt(&0.0) {
-                        velocity_2_unchecked.mul(impact_restitution).div(rb_2.mass)
+                        velocity_2_unchecked * impact_restitution / rb_2.mass
                     } else {
                         velocity_2_unchecked
                     };
@@ -52,34 +46,32 @@ pub fn run(world: &mut EcsWorld) {
 
                     // x = ma/k or x = m/k * dv/dt
 
-                    let displacement_1 =
-                        surface_normal.mul(depth);
-                    let displacement_2 =
-                        surface_normal.mul(depth);
+                    let displacement_1 = surface_normal * depth;
+                    let displacement_2 = surface_normal * depth;
 
                     displacement_map.entry(entity_1)
-                        .and_modify(|x| { *x + displacement_1; })
+                        .and_modify(|x| { *x += displacement_1; })
                         .or_insert(displacement_1);
 
                     displacement_map.entry(entity_1)
-                        .and_modify(|x| { *x + displacement_2; })
+                        .and_modify(|x| { *x += displacement_2; })
                         .or_insert(displacement_2);
                 }
             }
         }
 
         for (entity_id, new_velocity) in &velocity_map {
-            if let Some(mut rb) = world.get_component_mut::<RigidBody>(*entity_id) {
+            if let Some(rb) = world.get_component_mut::<RigidBody>(*entity_id) {
                 rb.velocity = *new_velocity;
             }
         }
         for (entity_id, pos_change) in &displacement_map {
-            if let Some(mut transform) = world.get_component_mut::<Transform>(*entity_id) {
+            if let Some(transform) = world.get_component_mut::<Transform>(*entity_id) {
                 transform.position -= pos_change;
             }
         }
 
-        // Clear the cache
+        // clear the cache
         world.collider_cache = HashSet::new();
     }
 }
