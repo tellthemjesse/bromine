@@ -1,11 +1,9 @@
-use crate::ecs::world::EcsWorld;
+use crate::types::{EcsWorld, Transform, RigidBody};
 use crate::tags::PhysicsTag;
-use crate::physics::rigid_body::RigidBody;
-use crate::components::transform::Transform;
 use crate::constants::G_SIM;
 use nalgebra_glm::normalize;
 
-const TINY_NUMBER: f32 = 1e-6;
+const EPSILON: f32 = 1e-6;
 
 pub fn run(world: &mut EcsWorld) {
     let mut physics_entities: Vec<(&Transform, &mut RigidBody)> = world.query_mut::<(&Transform, &mut RigidBody, &PhysicsTag)>()
@@ -29,11 +27,11 @@ pub fn run(world: &mut EcsWorld) {
             let pos_j = transform_j.position;
 
             let vec_ij = pos_j - pos_i;
-            let dist_sq = vec_ij.magnitude_squared() + TINY_NUMBER;
+            let dist_sq = vec_ij.magnitude_squared() + EPSILON;
             let force_magnitude = G_SIM * mass_i * mass_j / dist_sq;
             let force_direction = normalize(&vec_ij);
 
-            // Apply force as acceleration (a = F/m)
+            // apply force as acceleration (a = F/m)
             let accel_change = force_direction * force_magnitude;
 
             rigid_body_i.acceleration += accel_change / mass_i;

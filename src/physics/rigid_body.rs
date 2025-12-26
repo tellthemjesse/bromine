@@ -5,7 +5,8 @@ pub struct RigidBody {
     pub mass: f32,
     pub velocity: Vec3,
     pub acceleration: Vec3,
-    pub restitution: f32, // Bounciness factor (0.0 to 1.0)
+    /// bounciness factor (0.0 to 1.0)
+    pub restitution: f32,
 }
 
 impl Default for RigidBody {
@@ -14,7 +15,7 @@ impl Default for RigidBody {
             mass: 1.0,
             velocity: Vec3::zeros(),
             acceleration: Vec3::zeros(),
-            restitution: 0.1, // Default minimal bounciness
+            restitution: 0.1,
         }
     }
 }
