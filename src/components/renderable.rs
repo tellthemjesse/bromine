@@ -1,11 +1,9 @@
 #[derive(Clone, Debug)]
 pub struct Renderable {
-    // For now, use simple IDs. These would refer to resources
-    // managed elsewhere (e.g., in a ResourceManager).
     pub mesh: usize,
     pub shader: usize,
-    pub texture: Option<usize>, // Texture might be optional
-    pub is_visible: bool, // Useful flag
+    pub texture: Option<usize>,
+    pub is_visible: bool,
 }
 
 impl Renderable {
@@ -14,7 +12,7 @@ impl Renderable {
             mesh,
             shader,
             texture,
-            is_visible: true, // Visible by default
+            is_visible: true,
         }
     }
 
@@ -23,7 +21,8 @@ impl Renderable {
         self
     }
 
+    #[allow(unused)]
     pub fn set_visibility(&mut self, flag: bool) {
         self.is_visible = flag;
     }
-} 
+}
