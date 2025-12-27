@@ -1,13 +1,7 @@
-use std::mem;
-use nalgebra_glm::identity;
-use crate::components::renderable::Renderable;
-use crate::components::transform::Transform;
-use crate::ecs::EcsWorld;
-use crate::physics::mass_influence::MassInfluence;
-use crate::physics::rigid_body::RigidBody;
+use crate::types::{EcsWorld, Transform, Renderable, RigidBody};
 use crate::physics::spacetime_curvature::SpacetimeCurvature;
 use crate::tags::SpacetimeMeshTag;
-const MAX_MASSES: usize = 1024;
+use nalgebra_glm::identity;
 
 #[repr(C, align(16))]
 #[derive(Clone, Copy, Default, Debug)]
@@ -16,7 +10,7 @@ struct MassData {
     mass: f32,
     radius: f32,
     intensity: f32,
-    _padding: f32, // Ensure 32-byte alignment
+    _pad: f32,
 }
 
 pub fn run(world: &EcsWorld) {
@@ -37,36 +31,22 @@ pub fn run(world: &EcsWorld) {
             mass: rb.mass,
             radius: sc.radius,
             intensity: sc.intensity,
-            _padding: 0.0
+            ..Default::default()
         })
         .collect();
 
-    //println!("{:?}", influences);
-
-    /*assert_eq!(
-        mem::size_of::<MassData>(),
-        32, // 4 (vec4) + 4 (3 floats) + 4 (padding) = 32 bytes
-        "UBO struct has incorrect size"
-    );*/
-
-    // 2. Create and bind UBO
     unsafe {
-        // Create UBO with binding index 1
         let ubo = shader.create_ubo(1, &influences);
-
-        // Bind UBO to binding point 1
         shader.bind_ubo(ubo, 1);
     }
 
-    // 3. Set global uniforms
     shader.use_program();
 
     shader.set_mat4("view", &view_matrix);
     shader.set_mat4("projection", &projection_matrix);
     shader.set_int("mass_count", influences.len() as i32);
-    shader.set_float("global_intensity", 5.0); // Example value
+    shader.set_float("global_intensity", 5.0);
     shader.set_float("time", world.delta_time);
 
-    // 4. Render global grid
     crate::graphics::draw_lines(grid_mesh, None);
 }
