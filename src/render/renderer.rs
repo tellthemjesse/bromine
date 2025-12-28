@@ -1,13 +1,10 @@
 use std::sync::Arc;
-use bevy_ecs::prelude::Resource;
 use gl::types::GLuint;
 use glam::{Mat4, Vec3};
 use crate::opengl_backend::shader::Program;
-use crate::render::asset_storage::asset_storage::{AssetStorage, TextureHandle};
-use crate::render::ecs::Renderable;
-use crate::render::shader_storage::ShaderStorage;
+use crate::render::asset_storage::asset_storage::TextureHandle;
 
-#[derive(Resource, Default)]
+#[derive(Default)]
 pub struct RenderCommandQueue {
     commands: Vec<RenderCommand>,
     // Add per-frame data like uniform buffers

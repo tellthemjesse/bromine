@@ -1,19 +1,15 @@
 use std::collections::HashMap;
 use std::sync::atomic::{AtomicU32, Ordering};
-use bevy_ecs::prelude::{Component, Resource};
 use crate::render::asset_storage::mesh::Mesh;
 use crate::render::asset_storage::texture::Texture;
 
 pub type AssetID = u32;
 
 // Handles are unique ID's that Renderable component holds
-#[derive(Component)]
 pub struct MeshHandle(AssetID);
 
-#[derive(Component)]
 pub struct TextureHandle(AssetID);
 
-#[derive(Resource)]
 pub struct AssetStorage {
     meshes: HashMap<AssetID, Mesh>,
     textures: HashMap<AssetID, Texture>,
