@@ -4,11 +4,11 @@ use nalgebra_glm::Mat4;
 
 pub fn run(world: &EcsWorld) {
     let base_view_matrix = world.view_matrix.unwrap_or_else(|| {
-        eprintln!("[Warning]: View matrix is missing");
+        tracing::warn!("view matrix is missing");
         Mat4::identity()
     });
     let projection_matrix = world.projection_matrix.unwrap_or_else(|| {
-        eprintln!("[Warning]: Projection matrix is missing");
+        tracing::warn!("projection matrix is missing");
         Mat4::identity()
     });
 
@@ -25,14 +25,14 @@ pub fn run(world: &EcsWorld) {
         let mesh = match resource_manager.get_any_mesh(renderable.mesh) {
             Some(m) => m,
             None => {
-                eprintln!("[Error]: Missing mesh with ID {}", renderable.mesh);
+                tracing::error!("missing mesh with ID {}", renderable.mesh);
                 continue;
             }
         };
         let shader = match resource_manager.get_shader(renderable.shader) {
             Some(s) => s,
             None => {
-                eprintln!("[Error]: Missing shader with ID {}", renderable.shader);
+                tracing::error!("missing shader with ID {}", renderable.shader);
                 continue;
             }
         };
