@@ -1,3 +1,4 @@
+use std::sync::OnceLock;
 use crate::types::{EcsWorld, Transform, Renderable, RigidBody};
 use crate::physics::spacetime_curvature::SpacetimeCurvature;
 use crate::tags::SpacetimeMeshTag;
@@ -13,6 +14,8 @@ struct MassData {
     _pad: f32,
 }
 
+static UBO: OnceLock<u32> = OnceLock::new();
+
 pub fn run(world: &EcsWorld) {
     let view_matrix = world.view_matrix.unwrap_or(identity());
     let projection_matrix = world.projection_matrix.unwrap_or(identity());
@@ -21,9 +24,9 @@ pub fn run(world: &EcsWorld) {
     let (spacetime_renderable, _) = world.query::<(&Renderable, &SpacetimeMeshTag)>().next().unwrap();
 
     let grid_mesh = resource_manager.get_any_mesh(spacetime_renderable.mesh)
-        .expect("Grid mesh not found");
+        .unwrap();
     let shader = resource_manager.get_shader(spacetime_renderable.shader)
-        .expect("Curvature shader not found");
+        .unwrap();
 
     let influences: Vec<_> = world.query::<(&Transform, &RigidBody, &SpacetimeCurvature)>()
         .map(|(t, rb, sc)| MassData {
@@ -36,17 +39,25 @@ pub fn run(world: &EcsWorld) {
         .collect();
 
     unsafe {
-        let ubo = shader.create_ubo(1, &influences);
-        shader.bind_ubo(ubo, 1);
+        match UBO.get() {
+            Some(ubo) => {
+                shader.update_ubo(*ubo, &influences);
+            }
+            None => {
+                let ubo = shader.create_ubo(&influences);
+                shader.bind_ubo(ubo, 1);
+                let _ = UBO.set(ubo);
+            }
+        }
+        
+        shader.use_program();
+    
+        shader.set_mat4("view", &view_matrix);
+        shader.set_mat4("projection", &projection_matrix);
+        shader.set_int("mass_count", influences.len() as i32);
+        shader.set_float("global_intensity", 5.0);
+        shader.set_float("time", world.delta_time);
+    
+        crate::graphics::draw_lines(grid_mesh, None);
     }
-
-    shader.use_program();
-
-    shader.set_mat4("view", &view_matrix);
-    shader.set_mat4("projection", &projection_matrix);
-    shader.set_int("mass_count", influences.len() as i32);
-    shader.set_float("global_intensity", 5.0);
-    shader.set_float("time", world.delta_time);
-
-    crate::graphics::draw_lines(grid_mesh, None);
 }
