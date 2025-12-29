@@ -1,34 +1,29 @@
-#![allow(unsafe_op_in_unsafe_fn)]
-
 mod ecs;
 mod components;
 mod resources;
 mod systems;
 mod constants;
-mod application_ecs;
-
+mod application;
 mod graphics; 
 mod collision;
 mod tags;
 mod physics;
 mod camera;
 mod opengl_backend;
-
 mod types;
-
-use winit::event_loop::EventLoop;
-use application_ecs::Application;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     tracing_subscriber::fmt()
         .without_time()
         .with_target(false)
         .with_ansi(true)
+        .with_max_level(tracing::Level::DEBUG)
         .init();
     
-    let ev_loop = EventLoop::builder().build()?;
+    let ev_loop = winit::event_loop::EventLoop::builder()
+        .build()?;
 
-    let mut app = Application::new();
+    let mut app = application::Application::new();
 
     ev_loop.run_app(&mut app)?;
 

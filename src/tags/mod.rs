@@ -1,3 +1,3 @@
-mod tags_definitions;
+mod tags;
 
-pub use tags_definitions::*;
+pub use tags::*;
