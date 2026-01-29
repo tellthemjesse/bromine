@@ -4,45 +4,9 @@ use std::{
     collections::HashMap,
 };
 
-/// Components represent entity related data
-pub trait Component: Any {
-    fn as_any(&self) -> &dyn Any;
-    fn as_any_mut(&mut self) -> &mut dyn Any;
-}
+// ==== ENTITY ====
 
-#[macro_export]
-macro_rules! impl_component {
-    ($type:ty) => {
-        impl Component for $type {
-            fn as_any(&self) -> &dyn Any { self }
-            fn as_any_mut(&mut self) -> &mut dyn Any { self }
-        }
-    };
-}
-
-/// What's in the box ???
-pub type BoxedComponent = Box<dyn Component>;
-
-/// Resources are singleton data containers
-pub trait Resource: Any {
-    fn as_any(&self) -> &dyn Any;
-    fn as_any_mut(&mut self) -> &mut dyn Any;
-}
-
-#[macro_export]
-macro_rules! impl_resource {
-    ($type:ty) => {
-        impl Resource for $type {
-            fn as_any(&self) -> &dyn Any { self }
-            fn as_any_mut(&mut self) -> &mut dyn Any { self }
-        }
-    };
-}
-
-/// What's in the box ???
-pub type BoxedResource = Box<dyn Resource>;
-
-#[derive(Clone, Copy)]
+#[derive(Debug, Clone, Copy)]
 pub struct Entity(u32);
 
 impl Entity {
@@ -57,7 +21,17 @@ impl From<u32> for Entity {
     }
 }
 
-pub type TypeIdMap<V> = HashMap<TypeId, V>;
+// ==== COMPONENT ====
+
+/// Components represent entity related data
+pub trait Component: 'static {}
+
+#[macro_export]
+macro_rules! impl_component {
+    ($type:ty) => {
+        impl Component for $type {}
+    };
+}
 
 pub trait ComponentVec: Any {
     fn as_any(&self) -> &dyn Any;
@@ -66,16 +40,42 @@ pub trait ComponentVec: Any {
     fn push_none(&mut self);
 }
 
-impl<C: Component> ComponentVec for RefCell<Vec<Option<C>>> {
+impl<T: Component> ComponentVec for RefCell<Vec<Option<T>>> {
     fn as_any(&self) -> &dyn Any { self }
     fn as_any_mut(&mut self) -> &mut dyn Any { self }
     fn len(&self) -> usize { self.borrow().len() }
     fn push_none(&mut self) { self.borrow_mut().push(None); }
 }
 
+// ==== RESOURCE ====
+
+/// Resources are singleton data containers
+pub trait Resource: 'static {}
+
+#[macro_export]
+macro_rules! impl_resource {
+    ($type:ty) => {
+        impl Resource for $type {}
+    };
+}
+
+pub trait ResourceSlot: Any {
+    fn as_any(&self) -> &dyn Any;
+    fn as_any_mut(&mut self) -> &mut dyn Any;
+}
+
+impl<T: Resource> ResourceSlot for RefCell<T> {
+    fn as_any(&self) -> &dyn Any { self }
+    fn as_any_mut(&mut self) -> &mut dyn Any { self }
+}
+
+// ==== WORLD ====
+
+pub type TypeIdMap<V> = HashMap<TypeId, V>;
+
 pub struct World {
     pub entity_index: u32,
-    pub resources: TypeIdMap<BoxedResource>,
+    pub resources: TypeIdMap<Box<dyn ResourceSlot>>,
     pub entity_components: TypeIdMap<Box<dyn ComponentVec>>,
 }
 
@@ -99,8 +99,8 @@ impl World {
         T: Resource,
     {
         let type_id = TypeId::of::<T>();
-        let ptr = Box::new(resource);
-        let _ = self.resources.insert(type_id, ptr);
+        let box_ptr = Box::new(RefCell::new(resource));
+        let _ = self.resources.insert(type_id, box_ptr);
     }
 
     pub fn register_component<T>(&mut self, entity: Entity, component: T)
@@ -139,28 +139,21 @@ impl World {
         }
     }
 
-    pub fn get_resource<T>(&self) -> Option<&T>
+    pub fn borrow_resource<'w, T>(&'w self) -> Option<RefMut<'w, T>>
     where
         T: Resource,
     {
         self.resources.get(&TypeId::of::<T>())
-            .and_then(|boxed| boxed.as_ref().as_any().downcast_ref())
+            .and_then(|box_ptr| box_ptr.as_any().downcast_ref::<RefCell<T>>())
+            .and_then(|cell| Some(cell.borrow_mut()))
     }
 
-    pub fn get_resource_mut<T>(&mut self) -> Option<&mut T>
+    pub fn borrow_components<'w, T>(&'w self) -> Option<RefMut<'w, Vec<Option<T>>>>
     where
-        T: Resource,
+        T: Component,
     {
-        self.resources.get_mut(&TypeId::of::<T>())
-            .and_then(|boxed| boxed.as_mut().as_any_mut().downcast_mut())
-    }
-
-    pub fn borrow_components<'w, C>(&'w self) -> Option<RefMut<'w, Vec<Option<C>>>>
-    where
-        C: Component,
-    {
-        self.entity_components.get(&TypeId::of::<C>())
-            .and_then(|box_ptr| box_ptr.as_any().downcast_ref::<RefCell<Vec<Option<C>>>>())
+        self.entity_components.get(&TypeId::of::<T>())
+            .and_then(|box_ptr| box_ptr.as_any().downcast_ref::<RefCell<Vec<Option<T>>>>())
             .and_then(|cell| Some(cell.borrow_mut()))
     }
 }
@@ -225,14 +218,14 @@ mod test {
         struct TimeDelta(f32);
         impl_resource!(TimeDelta);
 
-        let mut dt = TimeDelta(0.016);
+        let dt = TimeDelta(0.016);
         world.register_resourse(dt);
 
-        let origin_ref = world.get_resource::<WorldOrigin>();
-        assert_eq!(Some(&origin), origin_ref);
-
-        let dt_mut = world.get_resource_mut::<TimeDelta>();
-        assert_eq!(Some(&mut dt), dt_mut);
+        let origin_ref = world.borrow_resource::<WorldOrigin>().unwrap();
+        let dt_ref = world.borrow_resource::<TimeDelta>().unwrap();
+        
+        assert_eq!(origin, *origin_ref);
+        assert_eq!(dt, *dt_ref);
     }
 
     #[test]
