@@ -1,8 +1,9 @@
 use std::{
-    any::{Any, TypeId},
-    cell::{RefCell, RefMut},
+    any::{Any, TypeId, type_name},
+    cell::{Ref, RefCell, RefMut},
     collections::HashMap,
 };
+use crate::hash::NoOpHash;
 
 // ==== ENTITY ====
 
@@ -38,6 +39,8 @@ pub trait ComponentVec: Any {
     fn as_any_mut(&mut self) -> &mut dyn Any;
     fn len(&self) -> usize;
     fn push_none(&mut self);
+    /// Checks if the value is present at given index
+    fn peek(&self, index: usize) -> Option<()>;
 }
 
 impl<T: Component> ComponentVec for RefCell<Vec<Option<T>>> {
@@ -45,6 +48,9 @@ impl<T: Component> ComponentVec for RefCell<Vec<Option<T>>> {
     fn as_any_mut(&mut self) -> &mut dyn Any { self }
     fn len(&self) -> usize { self.borrow().len() }
     fn push_none(&mut self) { self.borrow_mut().push(None); }
+    fn peek(&self, index: usize) -> Option<()> { 
+        self.borrow().get(index).and_then(|opt| opt.as_ref().map(|_| ())) 
+    }
 }
 
 // ==== RESOURCE ====
@@ -71,20 +77,22 @@ impl<T: Resource> ResourceSlot for RefCell<T> {
 
 // ==== WORLD ====
 
-pub type TypeIdMap<V> = HashMap<TypeId, V>;
+pub type TypeIdMap<V> = HashMap<TypeId, V, NoOpHash>;
 
 pub struct World {
     pub entity_index: u32,
     pub resources: TypeIdMap<Box<dyn ResourceSlot>>,
     pub entity_components: TypeIdMap<Box<dyn ComponentVec>>,
+    pub typenames: TypeIdMap<&'static str>,
 }
 
 impl World {
     pub fn new() -> Self {
         Self {
             entity_index: 0,
-            resources: TypeIdMap::new(),
-            entity_components: TypeIdMap::new(),
+            resources: TypeIdMap::with_hasher(NoOpHash),
+            entity_components: TypeIdMap::with_hasher(NoOpHash),
+            typenames: TypeIdMap::with_hasher(NoOpHash),
         }
     }
 
@@ -100,7 +108,9 @@ impl World {
     {
         let type_id = TypeId::of::<T>();
         let box_ptr = Box::new(RefCell::new(resource));
-        let _ = self.resources.insert(type_id, box_ptr);
+        if self.resources.insert(type_id, box_ptr).is_none() {
+            let _ = self.typenames.insert(type_id, type_name::<T>());
+        }
     }
 
     pub fn register_component<T>(&mut self, entity: Entity, component: T)
@@ -133,43 +143,63 @@ impl World {
                 components[index] = Some(component);
                 let box_ptr = Box::new(RefCell::new(components));
 
-                let _ = self.entity_components
-                    .insert(type_id, box_ptr);
+                let _ = self.entity_components.insert(type_id, box_ptr);
+                let _ = self.typenames.insert(type_id, type_name::<T>());
             }
         }
     }
 
+    /// Mutably borrows a [`Resource`]
     pub fn borrow_resource<'w, T>(&'w self) -> Option<RefMut<'w, T>>
     where
         T: Resource,
     {
         self.resources.get(&TypeId::of::<T>())
             .and_then(|box_ptr| box_ptr.as_any().downcast_ref::<RefCell<T>>())
-            .and_then(|cell| Some(cell.borrow_mut()))
+            .map(|cell| cell.borrow_mut())
     }
-
+    
+    /// Immutably borrows a [`Resource`]
+    pub fn fetch_resource<'w, T>(&'w self) -> Option<Ref<'w, T>>
+    where
+        T: Resource,
+    {
+        self.resources.get(&TypeId::of::<T>())
+            .and_then(|box_ptr| box_ptr.as_any().downcast_ref::<RefCell<T>>())
+            .map(|cell| cell.borrow())
+    }
+    
+    /// Mutably borrows a [`ComponentVec`]
     pub fn borrow_components<'w, T>(&'w self) -> Option<RefMut<'w, Vec<Option<T>>>>
     where
         T: Component,
     {
         self.entity_components.get(&TypeId::of::<T>())
             .and_then(|box_ptr| box_ptr.as_any().downcast_ref::<RefCell<Vec<Option<T>>>>())
-            .and_then(|cell| Some(cell.borrow_mut()))
+            .map(|cell| cell.borrow_mut())
+    }
+    
+    /// Immutably borrows a [`ComponentVec`]
+    pub fn fetch_components<'w, T>(&'w self) -> Option<Ref<'w, Vec<Option<T>>>>
+    where
+        T: Component,
+    {
+        self.entity_components.get(&TypeId::of::<T>())
+            .and_then(|box_ptr| box_ptr.as_any().downcast_ref::<RefCell<Vec<Option<T>>>>())
+            .map(|cell| cell.borrow())
+    }
+     
+    fn fetch_entity_component_types(&self, enity: Entity) -> Vec<TypeId> {
+        let mut type_ids = Vec::with_capacity(self.entity_components.len());
+        for (component_type, box_ptr) in self.entity_components.iter() {
+            if box_ptr.peek(enity.index() as usize).is_some() {
+                type_ids.push(*component_type);
+            }
+        }
+        type_ids
     }
 }
 
-/// Caller must ensure, that the queryable components are registered
-#[macro_export]
-macro_rules! query {
-    (&mut $world:ident, $c:ty) => {
-        $world.get_components::<$c>().unwrap()
-    };
-    (&mut $world:ident, $($c:ty),+) => {
-         (
-             $($world.borrow_components::<$c>().unwrap()),+
-         )
-    };
-}
 
 #[cfg(test)]
 mod test {
@@ -196,7 +226,7 @@ mod test {
 
         let positions = world.borrow_components::<Position>().unwrap();
         let position_opt = positions[entity.index() as usize];
-        let enemies = world.borrow_components::<Enemy>().unwrap();
+        let enemies = world.fetch_components::<Enemy>().unwrap();
         let is_enemy_opt = enemies[entity.index() as usize];
 
         assert_eq!(Some(position), position_opt);
@@ -221,35 +251,10 @@ mod test {
         let dt = TimeDelta(0.016);
         world.register_resourse(dt);
 
-        let origin_ref = world.borrow_resource::<WorldOrigin>().unwrap();
+        let origin_ref = world.fetch_resource::<WorldOrigin>().unwrap();
         let dt_ref = world.borrow_resource::<TimeDelta>().unwrap();
         
         assert_eq!(origin, *origin_ref);
         assert_eq!(dt, *dt_ref);
-    }
-
-    #[test]
-    fn test_query() {
-        let mut world = World::new();
-        let entity = world.spawn_entity();
-
-        #[derive(Clone, Copy, PartialEq, Eq, Debug)]
-        struct Position(i32, i32);
-        impl_component!(Position);
-
-        let position = Position(5, 8);
-        world.register_component(entity, position);
-
-        #[derive(Clone, Copy, PartialEq, Eq, Debug)]
-        struct Enemy;
-        impl_component!(Enemy);
-
-        let is_enemy = Enemy;
-        world.register_component(entity, is_enemy);
-
-        let (positions, enemies) = query!(&mut world, Position, Enemy);
-
-        assert_eq!(positions[entity.index() as usize], Some(position));
-        assert_ne!(enemies[entity.index() as usize], None);
     }
 }
