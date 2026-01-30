@@ -1,3 +1,5 @@
+#![deny(unused_results)]
+
 mod ecs;
 mod components;
 mod resources;

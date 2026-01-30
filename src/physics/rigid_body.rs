@@ -33,6 +33,7 @@ impl RigidBody {
         self
     }
 
+    #[allow(unused)]
     pub fn with_acceleration(mut self, acceleration: Vec3) -> Self {
         self.acceleration = acceleration;
         self

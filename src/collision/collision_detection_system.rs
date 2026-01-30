@@ -11,7 +11,7 @@ pub fn run(world: &mut EcsWorld) {
         for j in i + 1..colliders.len() {
             let (entity_jth, collider_jth) = colliders.get(j).unwrap();
             if collider_ith.would_collide(collider_jth) {
-                collider_cache.insert((*entity_ith, *entity_jth));
+                let _ = collider_cache.insert((*entity_ith, *entity_jth));
             }
         }
     }

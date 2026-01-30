@@ -1,9 +1,8 @@
 use std::mem::{offset_of, size_of};
-use std::ffi::{c_void};
+use std::ffi::c_void;
 use std::ptr;
 use std::os::raw::c_int;
 
-//use crate::opengl_bindings as gl;
 use gl::{
     LINEAR, LINEAR_MIPMAP_LINEAR, REPEAT, TEXTURE_2D, UNSIGNED_BYTE, TEXTURE_MAG_FILTER,
     TEXTURE_MIN_FILTER, TEXTURE_WRAP_S, TEXTURE_WRAP_T, TRIANGLES, FLOAT, STATIC_DRAW,
@@ -21,15 +20,12 @@ use nalgebra_glm as glm;
 
 use crate::graphics::context::c_string;
 
-// --- Define Texture wrapper ---
 #[derive(Debug, Clone)]
 pub struct Texture {
     pub id: GLuint,
-    // This is the texture type basically, but the type is reserved Rust keyword
     pub kind: GLenum
 }
 
-// --- Impl block ---
 // TODO: Think about how we can create universal new() fn instead of new_TEXTURE_TYPE() ??
 // But imo that seems overcomplicated, like you need to have 'dynamic' path argument(&str or &[&str])
 // While also matching texture type itself

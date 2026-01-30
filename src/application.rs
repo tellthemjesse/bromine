@@ -30,7 +30,7 @@ use crate::ecs::entity::EntityConstructor;
 use crate::constants::*;
 use crate::opengl_backend::shader::Program;
 use crate::physics::spacetime_curvature::SpacetimeCurvature;
-use crate::resources::manager::NewResourceManager;
+use crate::resources::manager::TypeErasedResourceMgr;
 use crate::tags::{PhysicsTag, CameraTag};
 
 const WIDTH: u32 = 1280;
@@ -163,7 +163,7 @@ impl Application {
 
         let cube_mesh_id = resource_manager.add_mesh(cube_mesh_obj);
         let debug_cube_id = resource_manager.add_mesh(debug_cube_mesh);
-        let curve_mesh = NewResourceManager::create_curvature_grid(500, 250);
+        let curve_mesh = TypeErasedResourceMgr::create_curvature_grid(500, 250);
         let spacetime_mesh_id = resource_manager.add_mesh(curve_mesh);
 
         let shader_program = Program::new(VERTEX_SHADER, FRAGMENT_SHADER, None);
@@ -259,6 +259,8 @@ impl Application {
             .apply(&mut self.world);
 
         tracing::info!("initial entities successfully created");
+        
+        tracing::info!("{:?}", self.world);
     }
 }
 
@@ -376,11 +378,11 @@ mod window_ev {
             match event.state {
                 ElementState::Pressed => {
                     if !event.repeat {
-                        app.world.input_state.pressed_keys.insert(key_code);
+                        let _ = app.world.input_state.pressed_keys.insert(key_code);
                     }
                 }
                 ElementState::Released => {
-                    app.world.input_state.pressed_keys.remove(&key_code);
+                    let _ = app.world.input_state.pressed_keys.remove(&key_code);
                 }
             }
         }

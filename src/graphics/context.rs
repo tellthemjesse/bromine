@@ -1,9 +1,12 @@
+use gl::types::{
+    GLenum, GLuint, GLint,
+    GLchar, GLbitfield, GLfloat,
+};
 use std::{
     ffi::CString,
     ptr, str,
 };
 use gl::GetUniformLocation;
-use gl::types::{GLenum, GLuint, GLint, GLchar, GLbitfield, GLfloat};
 
 pub fn compile_shader(src: &str, ty: GLenum) -> GLuint {
     let shader: GLuint;

@@ -1,5 +1,4 @@
 use std::{mem, ptr, str};
-//use crate::opengl_bindings as gl;
 
 use gl::types::{GLboolean, GLchar, GLint, GLuint};
 use nalgebra_glm::{Vec3, Mat4};
@@ -8,7 +7,7 @@ use crate::graphics::context::{get_uniform_location, compile_shader};
 
 #[derive(Debug)]
 pub struct Program {
-    id: GLuint
+    id: GLuint,
 }
 
 impl Program {
@@ -64,11 +63,10 @@ impl Program {
         }
 
         Self {
-            id
+            id,
         }
     }
 
-    /// Calls glUseProgram()
     pub fn use_program(&self) {
         unsafe {
             gl::UseProgram(self.id);
@@ -85,7 +83,7 @@ impl Program {
         unsafe {
             gl::Uniform3fv(
                 get_uniform_location(self.id, name),
-                1, mem::transmute(src.as_ptr())
+                1, src.as_ptr()
             );
         }
     }
@@ -95,7 +93,7 @@ impl Program {
             gl::UniformMatrix4fv(
                 get_uniform_location(self.id, name),
                 1, gl::FALSE as GLboolean,
-                mem::transmute(src.as_ptr())
+                src.as_ptr()
             );
         }
     }
@@ -106,7 +104,7 @@ impl Program {
         }
     }
 
-    pub unsafe fn create_ubo<T>(&self, binding: u32, data: &[T]) -> GLuint {
+    pub unsafe fn create_ubo<T>(&self, data: &[T]) -> GLuint {
         let mut ubo: GLuint = 0;
         gl::GenBuffers(1, &mut ubo);
         gl::BindBuffer(gl::UNIFORM_BUFFER, ubo);
@@ -116,16 +114,13 @@ impl Program {
             data.as_ptr() as *const _,
             gl::DYNAMIC_DRAW // Use GL_STATIC_DRAW for immutable data
         );
-        gl::BindBufferBase(gl::UNIFORM_BUFFER, binding, ubo);
         ubo
     }
 
-    // Bind existing UBO to program
     pub unsafe fn bind_ubo(&self, ubo: GLuint, binding: u32) {
         gl::BindBufferBase(gl::UNIFORM_BUFFER, binding, ubo);
     }
 
-    // Update UBO data
     pub unsafe fn update_ubo<T>(&self, ubo: GLuint, data: &[T]) {
         gl::BindBuffer(gl::UNIFORM_BUFFER, ubo);
         gl::BufferSubData(

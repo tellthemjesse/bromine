@@ -1,5 +1,11 @@
 use std::f32::consts::TAU;
 const PITCH_LIMIT: f32 = 1.55334; // 89 degrees
+use nutype::nutype;
+
+#[nutype(sanitize(with = |val| val.clamp(-PITCH_LIMIT, PITCH_LIMIT)))]
+struct Yaw(f32);
+struct Pitch(f32);
+struct Roll(f32);
 
 #[derive(Debug)]
 pub struct CameraState {

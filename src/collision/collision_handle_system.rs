@@ -41,19 +41,19 @@ pub fn run(world: &mut EcsWorld) {
                         velocity_2_unchecked
                     };
 
-                    velocity_map.insert(entity_1, velocity_1);
-                    velocity_map.insert(entity_2, velocity_2);
+                    let _ = velocity_map.insert(entity_1, velocity_1);
+                    let _ = velocity_map.insert(entity_2, velocity_2);
 
                     // x = ma/k or x = m/k * dv/dt
 
                     let displacement_1 = surface_normal * depth;
                     let displacement_2 = surface_normal * depth;
 
-                    displacement_map.entry(entity_1)
+                    let _ = displacement_map.entry(entity_1)
                         .and_modify(|x| { *x += displacement_1; })
                         .or_insert(displacement_1);
 
-                    displacement_map.entry(entity_1)
+                    let _ = displacement_map.entry(entity_1)
                         .and_modify(|x| { *x += displacement_2; })
                         .or_insert(displacement_2);
                 }

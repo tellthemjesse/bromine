@@ -1,17 +1,12 @@
-// Basic Resource Manager
-// In real project, this would be much more complex, handle loading,
-// reference counting, error handling, etc.
-
 use std::any::{Any, TypeId};
 use std::fmt::Debug;
 use gl::types::{GLsizei, GLuint};
 use crate::opengl_backend::shader::Program; // Re-use Program struct for shader ID?
 use crate::graphics::mesh::{Texture, Mesh}; // Import Mesh
-use obj::{Obj, Position, TexturedVertex};
-use obj::raw::RawObj;
+use obj::{Position, TexturedVertex};
 
 // The Resource Manager itself
-#[derive(Debug, Default)] // Make it debuggable and easy to default initialize
+#[derive(Default)] // Make it debuggable and easy to default initialize
 pub struct ResourceManager {
     // Store full Mesh objects
     // TODO: Make this generic later, or use dyn Any to store different Mesh types
@@ -90,8 +85,8 @@ impl<V: 'static + Debug, I: 'static + Debug> AnyMesh for Mesh<V, I> {
 }
 
 // New Resource Manager that supports different vertex types
-#[derive(Debug, Default)]
-pub struct NewResourceManager {
+#[derive(Default)]
+pub struct TypeErasedResourceMgr {
     meshes: Vec<Box<dyn AnyMesh>>, // Store mesh objects through trait object
     shaders: Vec<Program>,
     textures: Vec<Texture>,
@@ -100,9 +95,15 @@ pub struct NewResourceManager {
     mesh_types: Vec<TypeId>,
 }
 
-impl NewResourceManager {
+impl Debug for TypeErasedResourceMgr {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "no debug for resource mgr")
+    }
+}
+
+impl TypeErasedResourceMgr {
     pub fn new() -> Self {
-        NewResourceManager::default()
+        TypeErasedResourceMgr::default()
     }
 
     // Add any mesh type that implements AnyMesh (which all our Mesh<V,I> do)
@@ -139,6 +140,10 @@ impl NewResourceManager {
     pub fn get_shader(&self, id: usize) -> Option<&Program> {
         self.shaders.get(id)
     }
+    
+    pub fn get_shader_mut(&mut self, id: usize) -> Option<&mut Program> {
+        self.shaders.get_mut(id)
+    }
 
     // --- Texture Management ---
     pub fn add_texture(&mut self, texture: Texture) -> usize {
@@ -166,7 +171,6 @@ impl NewResourceManager {
             }
         }
 
-        // Create line indices
         for row in 0..divisions {
             for col in 0..divisions {
                 let i = row * (divisions + 1) + col;
@@ -179,7 +183,4 @@ impl NewResourceManager {
 
         Mesh::<Position, u16>::new_from_source(vertices, indices)
     }
-
-    // TODO: Add methods to load resources from files/bytes
-    // e.g., load_mesh_from_obj_bytes, load_shader_from_strings, load_texture_from_path
 }

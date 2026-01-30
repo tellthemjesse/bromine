@@ -1,6 +1,5 @@
 use std::ptr;
-use gl::{BindTexture, BindVertexArray, DrawElements, LINE, LINES, TEXTURE_2D, TRIANGLES, UNSIGNED_SHORT};
-use gl::types::GLsizei;
+use gl::{BindTexture, BindVertexArray, DrawElements, LINES, TEXTURE_2D, TRIANGLES, UNSIGNED_SHORT};
 use crate::graphics::mesh::Texture;
 use crate::resources::manager::AnyMesh;
 
@@ -43,15 +42,11 @@ where M: AnyMesh + ?Sized
         DrawElements(
             LINES,
             src.indices_len(),
-            UNSIGNED_SHORT, // Use trait constant
+            UNSIGNED_SHORT,
             ptr::null(),
         );
 
         BindVertexArray(0);
         BindTexture(TEXTURE_2D, 0);
     }
-}
-
-pub fn draw_instanced() {
-    todo!()
 }

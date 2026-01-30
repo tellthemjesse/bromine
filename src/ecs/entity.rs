@@ -1,3 +1,5 @@
+use std::fmt::Debug;
+
 use crate::ecs::component::Component;
 use crate::ecs::world::EcsWorld;
 
@@ -10,14 +12,14 @@ pub struct EntityConstructor {
 
 impl EntityConstructor {
     pub fn new(entity: Entity) -> Self {
-        println!("[Debug] Preparing constructor for Entity#{}", entity);
+        tracing::debug!("preparing constructor for entity#{entity}",);
         Self { 
             entity, 
             operations: Vec::new(),
         }
     }
 
-    pub fn with<T: Component + Send + Sync>(mut self, component: T) -> Self {  
+    pub fn with<T: Component + Debug>(mut self, component: T) -> Self {  
         let entity = self.entity;
         self.operations.push(Box::new(move |world: &mut EcsWorld| {
             world.add_component(entity, component); 
@@ -26,7 +28,7 @@ impl EntityConstructor {
     }
 
     pub fn apply(self, world: &mut EcsWorld) {
-        println!("[Debug] Applying constructor for Entity#{}", self.entity);
+        tracing::debug!("applying constructor for entity#{}", self.entity);
         for op in self.operations {
             op(world);
         }

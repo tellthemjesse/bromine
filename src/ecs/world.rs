@@ -1,27 +1,23 @@
-// Import necessary types
 use crate::ecs::component::Component;
 use crate::ecs::entity::Entity;
-use crate::resources::manager::{NewResourceManager, ResourceManager};
+use crate::resources::manager::TypeErasedResourceMgr;
 use crate::resources::input_state::InputState;
 use crate::camera::camera_state::CameraState;
 use nalgebra_glm::Mat4;
 use std::any::{Any, TypeId};
 use std::collections::{HashMap, HashSet};
+use std::fmt::Debug;
 use crate::collision::collider_cache::ColliderCache;
-use crate::ecs::query::{QueryIter, QueryIterMut, WorldQuery}; // Import query types
+use crate::ecs::query::{QueryIter, QueryIterMut, WorldQuery};
 
-// Define a trait for type-erased component storage
-// Make it pub so query.rs can see it
-pub(crate) trait ComponentStorage: Any + Send + Sync {
+pub trait ComponentStorage: Any + Send + Sync + Debug {
     fn as_any(&self) -> &dyn Any;
     fn as_any_mut(&mut self) -> &mut dyn Any;
     fn ensure_capacity(&mut self, entity_id: usize);
     fn remove(&mut self, entity_id: usize);
 }
 
-// Implement the trait for Vec<Option<T>> where T is a Component
-// This implementation can remain private to world.rs
-impl<T: Component> ComponentStorage for Vec<Option<T>> {
+impl<T: Component + Debug> ComponentStorage for Vec<Option<T>> {
     fn as_any(&self) -> &dyn Any {
         self
     }
@@ -36,7 +32,7 @@ impl<T: Component> ComponentStorage for Vec<Option<T>> {
             self.resize_with(required_len, || None);
         }
     }
-    
+
     fn remove(&mut self, entity_id: usize) {
         if entity_id < self.len() {
             self[entity_id] = None;
@@ -45,16 +41,10 @@ impl<T: Component> ComponentStorage for Vec<Option<T>> {
 }
 
 pub struct EcsWorld {
-    // Entity Management
     next_entity_id: usize,
-    // Value is Box<dyn ComponentStorage> for type erasure
     pub components: HashMap<TypeId, Box<dyn ComponentStorage>>,
-    // Keep track of which entities have which components (maybe use BitSet later)
     pub entity_components: HashMap<Entity, Vec<TypeId>>,
-
-    // --- Resources ---
-    // Global data accessible by systems
-    pub resource_manager: NewResourceManager,
+    pub resource_manager: TypeErasedResourceMgr,
     pub view_matrix: Option<Mat4>,
     pub projection_matrix: Option<Mat4>,
     pub input_state: InputState,
@@ -73,7 +63,7 @@ impl EcsWorld {
             components: HashMap::new(),
             entity_components: HashMap::new(),
             // Resources
-            resource_manager: NewResourceManager::new(),
+            resource_manager: TypeErasedResourceMgr::new(),
             view_matrix: None,
             projection_matrix: None,
             input_state: InputState::new(),
@@ -88,7 +78,7 @@ impl EcsWorld {
         let id = self.next_entity_id;
         self.next_entity_id += 1;
         // Initialize component list for the new entity
-        self.entity_components.insert(id, Vec::new());
+        let _ = self.entity_components.insert(id, Vec::new());
         id
     }
 
@@ -96,22 +86,22 @@ impl EcsWorld {
     pub fn create_entity(&mut self) -> Entity {
         self.allocate_entity_id()
     }
-    
+
     // --- Generic Component Methods ---
-    
+
     // Register a component type if it doesn't exist
-    fn register_component<T: Component>(&mut self) {
+    fn register_component<T: Component + Debug>(&mut self) {
         let type_id = TypeId::of::<T>();
-        self.components.entry(type_id).or_insert_with(|| {
+        let _ = self.components.entry(type_id).or_insert_with(|| {
             // Create new storage for this component type
             Box::new(Vec::<Option<T>>::new())
         });
     }
-    
+
     // Add any component to an entity
-    pub fn add_component<T: Component>(&mut self, entity: Entity, component: T) {
+    pub fn add_component<T: Component + Debug>(&mut self, entity: Entity, component: T) {
         let type_id = TypeId::of::<T>();
-        
+
         // Ensure the component type is registered and get its storage
         self.register_component::<T>();
         let storage = self.components.get_mut(&type_id).unwrap();
@@ -129,7 +119,7 @@ impl EcsWorld {
             // Or if entity was deleted and reused. For now, assume create_entity was called.
             // If this happens, we might need to re-insert the entity here.
             eprintln!("Warning: Adding component to untracked entity {}", entity);
-            self.entity_components.insert(entity, vec![type_id]);
+            let _ = self.entity_components.insert(entity, vec![type_id]);
         }
 
         // Downcast the storage to the specific Vec<Option<T>> and insert component
@@ -158,22 +148,22 @@ impl EcsWorld {
             .and_then(|vec| vec.get_mut(entity))
             .and_then(|opt| opt.as_mut())
     }
-    
+
     // Remove a component from an entity
     pub fn remove_component<T: Component>(&mut self, entity: Entity) {
         let type_id = TypeId::of::<T>();
-        
+
         // Remove from the storage vector
         if let Some(storage) = self.components.get_mut(&type_id) {
              storage.remove(entity);
         }
-        
+
         // Remove from the entity's component list
         if let Some(components) = self.entity_components.get_mut(&entity) {
             components.retain(|&id| id != type_id);
         }
     }
-    
+
     // Check if an entity has a specific component
     pub fn has_component<T: Component>(&self, entity: Entity) -> bool {
         let type_id = TypeId::of::<T>();
@@ -181,13 +171,13 @@ impl EcsWorld {
             .map_or(false, |components| components.contains(&type_id))
     }
 
-    // --- Query Methods --- 
-    
+    // --- Query Methods ---
+
     // Immutable query method
     pub fn query<'w, Q: WorldQuery<'w>>(&'w self) -> QueryIter<'w, Q> {
         QueryIter::new(self)
     }
-    
+
     // Mutable query method
     // Returns an iterator yielding mutable references
     pub fn query_mut<'w, Q: WorldQuery<'w>>(&'w mut self) -> QueryIterMut<'w, Q> {
@@ -229,7 +219,7 @@ impl EcsWorld {
         // 2. Check if entity has all components
         let required_types = Q::get_component_type_ids();
         // Immutable borrow for check first, to not conflict with mutable borrow later if entity_id is not found early
-        if let Some(entity_component_list) = self.entity_components.get(&entity_id) { 
+        if let Some(entity_component_list) = self.entity_components.get(&entity_id) {
             let has_all_components = required_types.iter().all(|required_type| {
                 entity_component_list.contains(required_type)
             });
@@ -262,4 +252,10 @@ impl EcsWorld {
             })
             .collect()
     }
-} 
+}
+
+impl std::fmt::Debug for EcsWorld {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "COMPONENTS:\n{:?}\nENTITY_COMPONENTS: \n{:?}\n", self.components, self.entity_components)
+    }
+}
