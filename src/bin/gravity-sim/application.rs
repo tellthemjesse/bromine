@@ -33,17 +33,17 @@ use winit::{
 const WIDTH: u32 = 1280;
 const HEIGHT: u32 = 720;
 
-const FRAGMENT_SHADER: &str = include_str!("../resources/shaders/default/shader.frag");
-const VERTEX_SHADER: &str = include_str!("../resources/shaders/default/shader.vert");
+const FRAGMENT_SHADER: &str = include_str!("../../../game_resources/shaders/default/shader.frag");
+const VERTEX_SHADER: &str = include_str!("../../../game_resources/shaders/default/shader.vert");
 
-const DFRAGMENT_SHADER: &str = include_str!("../resources/shaders/debug/shader.frag");
-const DVERTEX_SHADER: &str = include_str!("../resources/shaders/debug/shader.vert");
+const DFRAGMENT_SHADER: &str = include_str!("../../../game_resources/shaders/debug/shader.frag");
+const DVERTEX_SHADER: &str = include_str!("../../../game_resources/shaders/debug/shader.vert");
 
-const CURVE_FRAG: &str = include_str!("../resources/shaders/spacetimeCurve.frag");
-const CURVE_VERT: &str = include_str!("../resources/shaders/spacetimeCurve.vert");
+const CURVE_FRAG: &str = include_str!("../../../game_resources/shaders/spacetimeCurve.frag");
+const CURVE_VERT: &str = include_str!("../../../game_resources/shaders/spacetimeCurve.vert");
 
-const TEXTURED_CUBE: &[u8] = include_bytes!("../resources/models/sphere.obj");
-const POSITIONED_CUBE: &[u8] = include_bytes!("../resources/models/positioned_cube.obj");
+const TEXTURED_CUBE: &[u8] = include_bytes!("../../../game_resources/models/sphere.obj");
+const POSITIONED_CUBE: &[u8] = include_bytes!("../../../game_resources/models/positioned_cube.obj");
 
 pub struct WindowContext {
     window_id: WindowId,

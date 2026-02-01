@@ -4,4 +4,4 @@ target/
 .vscode/
 .zed/
 
-resources/
+game_resources/
