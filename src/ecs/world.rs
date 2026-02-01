@@ -1,14 +1,14 @@
+use crate::camera::camera_state::CameraState;
+use crate::collision::collider_cache::ColliderCache;
 use crate::ecs::component::Component;
 use crate::ecs::entity::Entity;
-use crate::resources::manager::TypeErasedResourceMgr;
+use crate::ecs::query::{QueryIter, QueryIterMut, WorldQuery};
 use crate::resources::input_state::InputState;
-use crate::camera::camera_state::CameraState;
+use crate::resources::manager::TypeErasedResourceMgr;
 use nalgebra_glm::Mat4;
 use std::any::{Any, TypeId};
 use std::collections::{HashMap, HashSet};
 use std::fmt::Debug;
-use crate::collision::collider_cache::ColliderCache;
-use crate::ecs::query::{QueryIter, QueryIterMut, WorldQuery};
 
 pub trait ComponentStorage: Any + Send + Sync + Debug {
     fn as_any(&self) -> &dyn Any;
@@ -134,7 +134,8 @@ impl EcsWorld {
     // Get an immutable reference to a component
     pub fn get_component<T: Component>(&self, entity: Entity) -> Option<&T> {
         let type_id = TypeId::of::<T>();
-        self.components.get(&type_id)
+        self.components
+            .get(&type_id)
             .and_then(|storage| storage.as_any().downcast_ref::<Vec<Option<T>>>())
             .and_then(|vec| vec.get(entity))
             .and_then(|opt| opt.as_ref())
@@ -143,7 +144,8 @@ impl EcsWorld {
     // Get a mutable reference to a component
     pub fn get_component_mut<T: Component>(&mut self, entity: Entity) -> Option<&mut T> {
         let type_id = TypeId::of::<T>();
-        self.components.get_mut(&type_id)
+        self.components
+            .get_mut(&type_id)
             .and_then(|storage| storage.as_any_mut().downcast_mut::<Vec<Option<T>>>())
             .and_then(|vec| vec.get_mut(entity))
             .and_then(|opt| opt.as_mut())
@@ -155,7 +157,7 @@ impl EcsWorld {
 
         // Remove from the storage vector
         if let Some(storage) = self.components.get_mut(&type_id) {
-             storage.remove(entity);
+            storage.remove(entity);
         }
 
         // Remove from the entity's component list
@@ -167,7 +169,8 @@ impl EcsWorld {
     // Check if an entity has a specific component
     pub fn has_component<T: Component>(&self, entity: Entity) -> bool {
         let type_id = TypeId::of::<T>();
-        self.entity_components.get(&entity)
+        self.entity_components
+            .get(&entity)
             .map_or(false, |components| components.contains(&type_id))
     }
 
@@ -196,9 +199,9 @@ impl EcsWorld {
         // 2. Check if the entity actually has all components required by Q
         let required_types = Q::get_component_type_ids();
         if let Some(entity_component_list) = self.entity_components.get(&entity_id) {
-            let has_all_components = required_types.iter().all(|required_type| {
-                entity_component_list.contains(required_type)
-            });
+            let has_all_components = required_types
+                .iter()
+                .all(|required_type| entity_component_list.contains(required_type));
 
             if has_all_components {
                 // 3. If yes, fetch the components
@@ -212,7 +215,10 @@ impl EcsWorld {
         }
     }
 
-    pub fn query_entity_mut<'w, Q: WorldQuery<'w>>(&'w mut self, entity_id: Entity) -> Option<Q::Item> {
+    pub fn query_entity_mut<'w, Q: WorldQuery<'w>>(
+        &'w mut self,
+        entity_id: Entity,
+    ) -> Option<Q::Item> {
         // 1. Check query access
         Q::check_query_access();
 
@@ -220,9 +226,9 @@ impl EcsWorld {
         let required_types = Q::get_component_type_ids();
         // Immutable borrow for check first, to not conflict with mutable borrow later if entity_id is not found early
         if let Some(entity_component_list) = self.entity_components.get(&entity_id) {
-            let has_all_components = required_types.iter().all(|required_type| {
-                entity_component_list.contains(required_type)
-            });
+            let has_all_components = required_types
+                .iter()
+                .all(|required_type| entity_component_list.contains(required_type));
 
             if has_all_components {
                 // 3. Fetch mutable components
@@ -239,12 +245,14 @@ impl EcsWorld {
 
     // Retain the old query_entities for internal use by QueryIter/QueryIterMut
     pub(crate) fn query_entities(&self, component_types: &[TypeId]) -> Vec<Entity> {
-        self.entity_components.iter()
+        self.entity_components
+            .iter()
             .filter_map(|(&entity_id, entity_component_list)| {
                 // Check if the entity has ALL required component types
-                if component_types.iter().all(|required_type| {
-                    entity_component_list.contains(required_type)
-                }) {
+                if component_types
+                    .iter()
+                    .all(|required_type| entity_component_list.contains(required_type))
+                {
                     Some(entity_id)
                 } else {
                     None
@@ -256,6 +264,10 @@ impl EcsWorld {
 
 impl std::fmt::Debug for EcsWorld {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "COMPONENTS:\n{:?}\nENTITY_COMPONENTS: \n{:?}\n", self.components, self.entity_components)
+        write!(
+            f,
+            "COMPONENTS:\n{:?}\nENTITY_COMPONENTS: \n{:?}\n",
+            self.components, self.entity_components
+        )
     }
 }

@@ -1,15 +1,13 @@
 use std::collections::HashSet;
 use winit::keyboard::KeyCode;
 
-use nalgebra_glm::{normalize, vec3, cross, Vec3};
+use nalgebra_glm::{cross, normalize, vec3, Vec3};
 
-use crate::types::{EcsWorld, Transform, RigidBody};
-use crate::tags::CameraTag;
 use crate::constants::{
-    MOUSE_SENSITIVITY, TARGET_PITCH_ANGLE,
-    TARGET_ROLL_ANGLE,INTERPOLATION_SPEED,
-    CAMERA_SPEED,
+    CAMERA_SPEED, INTERPOLATION_SPEED, MOUSE_SENSITIVITY, TARGET_PITCH_ANGLE, TARGET_ROLL_ANGLE,
 };
+use crate::tags::CameraTag;
+use crate::types::{EcsWorld, RigidBody, Transform};
 
 pub fn run(world: &mut EcsWorld) {
     let dt = world.delta_time;
@@ -17,7 +15,9 @@ pub fn run(world: &mut EcsWorld) {
     let pressed_keys = world.input_state.pressed_keys.clone();
 
     // apply mouse movement
-    world.camera_state.update_angles(mouse_delta.0, -mouse_delta.1, MOUSE_SENSITIVITY);
+    world
+        .camera_state
+        .update_angles(mouse_delta.0, -mouse_delta.1, MOUSE_SENSITIVITY);
     let yaw = world.camera_state.yaw;
     let pitch = world.camera_state.pitch;
 
@@ -38,7 +38,9 @@ pub fn run(world: &mut EcsWorld) {
 
     // find camera entity components
     let mut camera_components_opt = None;
-    for (transform, rigid_body, _tag) in world.query_mut::<(&mut Transform, &mut RigidBody, &CameraTag)>() {
+    for (transform, rigid_body, _tag) in
+        world.query_mut::<(&mut Transform, &mut RigidBody, &CameraTag)>()
+    {
         camera_components_opt = Some((transform, rigid_body));
         break;
     }
@@ -56,12 +58,24 @@ pub fn run(world: &mut EcsWorld) {
         // determine desired movement direction
         let mut desired_movement_direction = Vec3::zeros();
 
-        if pressed_keys.contains(&KeyCode::KeyW) { desired_movement_direction += move_forward; }
-        if pressed_keys.contains(&KeyCode::KeyS) { desired_movement_direction -= move_forward; }
-        if pressed_keys.contains(&KeyCode::KeyA) { desired_movement_direction -= move_right; }
-        if pressed_keys.contains(&KeyCode::KeyD) { desired_movement_direction += move_right; }
-        if pressed_keys.contains(&KeyCode::Space) { desired_movement_direction += vec3(0.0, 1.0, 0.0); }
-        if pressed_keys.contains(&KeyCode::ShiftLeft) { desired_movement_direction -= vec3(0.0, 1.0, 0.0); }
+        if pressed_keys.contains(&KeyCode::KeyW) {
+            desired_movement_direction += move_forward;
+        }
+        if pressed_keys.contains(&KeyCode::KeyS) {
+            desired_movement_direction -= move_forward;
+        }
+        if pressed_keys.contains(&KeyCode::KeyA) {
+            desired_movement_direction -= move_right;
+        }
+        if pressed_keys.contains(&KeyCode::KeyD) {
+            desired_movement_direction += move_right;
+        }
+        if pressed_keys.contains(&KeyCode::Space) {
+            desired_movement_direction += vec3(0.0, 1.0, 0.0);
+        }
+        if pressed_keys.contains(&KeyCode::ShiftLeft) {
+            desired_movement_direction -= vec3(0.0, 1.0, 0.0);
+        }
 
         // update velocity
         if desired_movement_direction != Vec3::zeros() {
@@ -78,13 +92,21 @@ pub fn run(world: &mut EcsWorld) {
 }
 
 fn sgn_pitch(keys: &HashSet<KeyCode>) -> f32 {
-    if keys.contains(&KeyCode::KeyW) { -1.0 }
-    else if keys.contains(&KeyCode::KeyS) { 1.0 }
-    else { 0.0 }
+    if keys.contains(&KeyCode::KeyW) {
+        -1.0
+    } else if keys.contains(&KeyCode::KeyS) {
+        1.0
+    } else {
+        0.0
+    }
 }
 
 fn sgn_roll(keys: &HashSet<KeyCode>) -> f32 {
-    if keys.contains(&KeyCode::KeyD) { -1.0 }
-    else if keys.contains(&KeyCode::KeyA) { 1.0 }
-    else { 0.0 }
+    if keys.contains(&KeyCode::KeyD) {
+        -1.0
+    } else if keys.contains(&KeyCode::KeyA) {
+        1.0
+    } else {
+        0.0
+    }
 }

@@ -1,7 +1,4 @@
-use core::{
-    hash::{BuildHasher, Hasher},
-};
-
+use core::hash::{BuildHasher, Hasher};
 
 /// [`BuildHasher`] for types that already contain a high-quality hash.
 #[derive(Clone, Default)]

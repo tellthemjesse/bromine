@@ -1,29 +1,28 @@
-use std::mem::{offset_of, size_of};
 use std::ffi::c_void;
-use std::ptr;
+use std::mem::{offset_of, size_of};
 use std::os::raw::c_int;
+use std::ptr;
 
-use gl::{
-    LINEAR, LINEAR_MIPMAP_LINEAR, REPEAT, TEXTURE_2D, UNSIGNED_BYTE, TEXTURE_MAG_FILTER,
-    TEXTURE_MIN_FILTER, TEXTURE_WRAP_S, TEXTURE_WRAP_T, TRIANGLES, FLOAT, STATIC_DRAW,
-    ARRAY_BUFFER, ELEMENT_ARRAY_BUFFER, UNSIGNED_SHORT, TEXTURE_CUBE_MAP,
-    TEXTURE_CUBE_MAP_POSITIVE_X, CLAMP_TO_EDGE, TEXTURE_WRAP_R, UNSIGNED_INT,
-    GenBuffers, GenVertexArrays, BindVertexArray, EnableVertexAttribArray,
-    VertexAttribPointer, BindBuffer, BufferData, BindTexture,
-    DrawElementsInstanced, DrawElements, VertexAttribDivisor
-};
 use gl::types::{GLenum, GLint, GLsizei, GLsizeiptr, GLuint};
+use gl::{
+    BindBuffer, BindTexture, BindVertexArray, BufferData, DrawElements, DrawElementsInstanced,
+    EnableVertexAttribArray, GenBuffers, GenVertexArrays, VertexAttribDivisor, VertexAttribPointer,
+    ARRAY_BUFFER, CLAMP_TO_EDGE, ELEMENT_ARRAY_BUFFER, FLOAT, LINEAR, LINEAR_MIPMAP_LINEAR, REPEAT,
+    STATIC_DRAW, TEXTURE_2D, TEXTURE_CUBE_MAP, TEXTURE_CUBE_MAP_POSITIVE_X, TEXTURE_MAG_FILTER,
+    TEXTURE_MIN_FILTER, TEXTURE_WRAP_R, TEXTURE_WRAP_S, TEXTURE_WRAP_T, TRIANGLES, UNSIGNED_BYTE,
+    UNSIGNED_INT, UNSIGNED_SHORT,
+};
 
-use obj::{TexturedVertex, Obj, Vertex, Position};
-use stb_image::stb_image;
 use nalgebra_glm as glm;
+use obj::{Obj, Position, TexturedVertex, Vertex};
+use stb_image::stb_image;
 
 use crate::graphics::context::c_string;
 
 #[derive(Debug, Clone)]
 pub struct Texture {
     pub id: GLuint,
-    pub kind: GLenum
+    pub kind: GLenum,
 }
 
 // TODO: Think about how we can create universal new() fn instead of new_TEXTURE_TYPE() ??
@@ -47,7 +46,7 @@ impl Texture {
                 &mut width,
                 &mut height,
                 &mut nr_channels,
-                0
+                0,
             );
 
             if image_data.is_null() {
@@ -62,22 +61,25 @@ impl Texture {
             // ??? not sure about this segment below, read documentation
             gl::TexParameteri(TEXTURE_2D, TEXTURE_WRAP_S, REPEAT as GLint);
             gl::TexParameteri(TEXTURE_2D, TEXTURE_WRAP_T, REPEAT as GLint);
-            gl::TexParameteri(TEXTURE_2D, TEXTURE_MIN_FILTER, LINEAR_MIPMAP_LINEAR as GLint);
+            gl::TexParameteri(
+                TEXTURE_2D,
+                TEXTURE_MIN_FILTER,
+                LINEAR_MIPMAP_LINEAR as GLint,
+            );
             gl::TexParameteri(TEXTURE_2D, TEXTURE_MAG_FILTER, LINEAR as GLint);
 
-            let format = if nr_channels == 4 {
-                gl::RGBA
-            } else {
-                gl::RGB
-            };
+            let format = if nr_channels == 4 { gl::RGBA } else { gl::RGB };
 
             gl::TexImage2D(
-                TEXTURE_2D, 0,
+                TEXTURE_2D,
+                0,
                 format as GLint, // Use determined format
-                width, height, 0,
+                width,
+                height,
+                0,
                 format, // Use determined format
                 UNSIGNED_BYTE,
-                image_data as *const c_void
+                image_data as *const c_void,
             );
 
             gl::GenerateMipmap(TEXTURE_2D);
@@ -111,27 +113,25 @@ impl Texture {
                     &mut width,
                     &mut height,
                     &mut nr_channels,
-                    0
+                    0,
                 );
 
                 if image_data.is_null() {
                     panic!("Failed to load cubemap face: {}", paths[i]);
                 }
 
-                 let format = if nr_channels == 4 {
-                    gl::RGBA
-                } else {
-                    gl::RGB
-                };
+                let format = if nr_channels == 4 { gl::RGBA } else { gl::RGB };
 
                 gl::TexImage2D(
                     TEXTURE_CUBE_MAP_POSITIVE_X + i as GLenum,
                     0,
                     format as GLint,
-                    width, height, 0,
+                    width,
+                    height,
+                    0,
                     format,
                     UNSIGNED_BYTE,
-                    image_data as *const c_void
+                    image_data as *const c_void,
                 );
 
                 stb_image::stbi_image_free(image_data as *mut c_void);
@@ -145,7 +145,7 @@ impl Texture {
 
             Texture {
                 id: texture,
-                kind: TEXTURE_CUBE_MAP
+                kind: TEXTURE_CUBE_MAP,
             }
         }
     }
@@ -182,11 +182,12 @@ impl<I> Mesh<TexturedVertex, I> {
             GenBuffers(1, &mut ebo);
 
             if let Some(offsets) = instance_offsets {
-                 if !offsets.is_empty() { // Only create if not empty
+                if !offsets.is_empty() {
+                    // Only create if not empty
                     let mut vbo_id = 0;
                     GenBuffers(1, &mut vbo_id);
                     instance_vbo = Some(vbo_id);
-                 }
+                }
             }
 
             BindVertexArray(vao);
@@ -197,7 +198,7 @@ impl<I> Mesh<TexturedVertex, I> {
                 ARRAY_BUFFER,
                 (model.vertices.len() * size_of::<TexturedVertex>()) as GLsizeiptr,
                 model.vertices.as_ptr() as *const c_void,
-                STATIC_DRAW
+                STATIC_DRAW,
             );
 
             // EBO
@@ -206,20 +207,41 @@ impl<I> Mesh<TexturedVertex, I> {
                 ELEMENT_ARRAY_BUFFER,
                 (model.indices.len() * size_of::<I>()) as GLsizeiptr, // Use size_of::<I>()
                 model.indices.as_ptr() as *const c_void,
-                STATIC_DRAW
+                STATIC_DRAW,
             );
 
             // Vertex Attributes
             let stride = size_of::<TexturedVertex>() as GLsizei;
             // Position (Location 0)
             EnableVertexAttribArray(0);
-            VertexAttribPointer(0, 3, FLOAT, gl::FALSE, stride, offset_of!(TexturedVertex, position) as *const c_void);
+            VertexAttribPointer(
+                0,
+                3,
+                FLOAT,
+                gl::FALSE,
+                stride,
+                offset_of!(TexturedVertex, position) as *const c_void,
+            );
             // Normal (Location 1)
             EnableVertexAttribArray(1);
-            VertexAttribPointer(1, 3, FLOAT, gl::FALSE, stride, offset_of!(TexturedVertex, normal) as *const c_void);
+            VertexAttribPointer(
+                1,
+                3,
+                FLOAT,
+                gl::FALSE,
+                stride,
+                offset_of!(TexturedVertex, normal) as *const c_void,
+            );
             // TexCoords (Location 2)
             EnableVertexAttribArray(2);
-            VertexAttribPointer(2, 2, FLOAT, gl::FALSE, stride, offset_of!(TexturedVertex, texture) as *const c_void);
+            VertexAttribPointer(
+                2,
+                2,
+                FLOAT,
+                gl::FALSE,
+                stride,
+                offset_of!(TexturedVertex, texture) as *const c_void,
+            );
 
             // Instance VBO Setup
             if let (Some(offsets), Some(inst_vbo_id)) = (instance_offsets, instance_vbo) {
@@ -229,17 +251,24 @@ impl<I> Mesh<TexturedVertex, I> {
                     ARRAY_BUFFER,
                     (offsets.len() * size_of::<glm::Vec3>()) as GLsizeiptr,
                     offsets.as_ptr() as *const c_void,
-                    STATIC_DRAW
+                    STATIC_DRAW,
                 );
                 // Instance Attribute (Offset - Location 3)
                 EnableVertexAttribArray(3);
-                VertexAttribPointer(3, 3, FLOAT, gl::FALSE, size_of::<glm::Vec3>() as GLsizei, ptr::null());
+                VertexAttribPointer(
+                    3,
+                    3,
+                    FLOAT,
+                    gl::FALSE,
+                    size_of::<glm::Vec3>() as GLsizei,
+                    ptr::null(),
+                );
                 VertexAttribDivisor(3, 1); // Instanced attribute
             }
 
             BindVertexArray(0);
             BindBuffer(ARRAY_BUFFER, 0); // Unbind VBO after VAO configuration
-            // EBO stays bound to VAO
+                                         // EBO stays bound to VAO
         }
 
         Self {
@@ -248,7 +277,7 @@ impl<I> Mesh<TexturedVertex, I> {
             vao,
             vbo,
             ebo,
-            instance_vbo
+            instance_vbo,
         }
     }
 }
@@ -273,7 +302,7 @@ impl<I> Mesh<Vertex, I> {
                 ARRAY_BUFFER,
                 (model.vertices.len() * size_of::<Vertex>()) as GLsizeiptr,
                 model.vertices.as_ptr() as *const c_void,
-                STATIC_DRAW
+                STATIC_DRAW,
             );
 
             // EBO
@@ -282,17 +311,31 @@ impl<I> Mesh<Vertex, I> {
                 ELEMENT_ARRAY_BUFFER,
                 (model.indices.len() * size_of::<I>()) as GLsizeiptr, // Use size_of::<I>()
                 model.indices.as_ptr() as *const c_void,
-                STATIC_DRAW
+                STATIC_DRAW,
             );
 
             // Vertex Attributes
             let stride = size_of::<Vertex>() as GLsizei;
             // Position (Location 0)
             EnableVertexAttribArray(0);
-            VertexAttribPointer(0, 3, FLOAT, gl::FALSE, stride, offset_of!(Vertex, position) as *const c_void);
+            VertexAttribPointer(
+                0,
+                3,
+                FLOAT,
+                gl::FALSE,
+                stride,
+                offset_of!(Vertex, position) as *const c_void,
+            );
             // Normal (Location 1)
             EnableVertexAttribArray(1);
-            VertexAttribPointer(1, 3, FLOAT, gl::FALSE, stride, offset_of!(Vertex, normal) as *const c_void);
+            VertexAttribPointer(
+                1,
+                3,
+                FLOAT,
+                gl::FALSE,
+                stride,
+                offset_of!(Vertex, normal) as *const c_void,
+            );
 
             BindVertexArray(0);
             BindBuffer(ARRAY_BUFFER, 0);
@@ -328,7 +371,7 @@ impl Mesh<Position, u16> {
                 ARRAY_BUFFER,
                 (vertices.len() * size_of::<Position>()) as GLsizeiptr,
                 vertices.as_ptr() as *const c_void,
-                STATIC_DRAW
+                STATIC_DRAW,
             );
 
             // EBO
@@ -337,7 +380,7 @@ impl Mesh<Position, u16> {
                 ELEMENT_ARRAY_BUFFER,
                 (indices.len() * size_of::<u16>()) as GLsizeiptr, // Use size_of::<I>()
                 indices.as_ptr() as *const c_void,
-                STATIC_DRAW
+                STATIC_DRAW,
             );
 
             // Vertex Attributes
@@ -381,7 +424,7 @@ impl<I> Mesh<Position, I> {
                 ARRAY_BUFFER,
                 (model.vertices.len() * size_of::<Position>()) as GLsizeiptr,
                 model.vertices.as_ptr() as *const c_void,
-                STATIC_DRAW
+                STATIC_DRAW,
             );
 
             // EBO
@@ -390,7 +433,7 @@ impl<I> Mesh<Position, I> {
                 ELEMENT_ARRAY_BUFFER,
                 (model.indices.len() * size_of::<I>()) as GLsizeiptr, // Use size_of::<I>()
                 model.indices.as_ptr() as *const c_void,
-                STATIC_DRAW
+                STATIC_DRAW,
             );
 
             // Vertex Attributes
@@ -414,7 +457,6 @@ impl<I> Mesh<Position, I> {
     }
 }
 
-
 // --- Helper Trait for Index Type ---
 pub trait GlIndexType {
     const GL_TYPE: GLenum;
@@ -430,7 +472,11 @@ impl GlIndexType for u32 {
 
 // --- Draw Functions ---
 
-pub fn draw_instanced<V, I: GlIndexType>(src: &Mesh<V, I>, texture: Option<Texture>, instances: GLsizei) {
+pub fn draw_instanced<V, I: GlIndexType>(
+    src: &Mesh<V, I>,
+    texture: Option<Texture>,
+    instances: GLsizei,
+) {
     unsafe {
         if let Some(ref texture) = texture {
             BindTexture(texture.kind, texture.id);
@@ -445,7 +491,7 @@ pub fn draw_instanced<V, I: GlIndexType>(src: &Mesh<V, I>, texture: Option<Textu
             src.indices.len() as GLsizei,
             I::GL_TYPE, // Use trait constant
             ptr::null(),
-            instances
+            instances,
         );
 
         BindVertexArray(0);

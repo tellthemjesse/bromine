@@ -42,4 +42,3 @@ mod test {
         assert_ne!(enemies[entity.index() as usize], None);
     }
 }
-

@@ -1,9 +1,9 @@
+use crate::graphics::mesh::{Mesh, Texture}; // Import Mesh
+use crate::opengl_backend::shader::Program; // Re-use Program struct for shader ID?
+use gl::types::{GLsizei, GLuint};
+use obj::{Position, TexturedVertex};
 use std::any::{Any, TypeId};
 use std::fmt::Debug;
-use gl::types::{GLsizei, GLuint};
-use crate::opengl_backend::shader::Program; // Re-use Program struct for shader ID?
-use crate::graphics::mesh::{Texture, Mesh}; // Import Mesh
-use obj::{Position, TexturedVertex};
 
 // The Resource Manager itself
 #[derive(Default)] // Make it debuggable and easy to default initialize
@@ -11,10 +11,10 @@ pub struct ResourceManager {
     // Store full Mesh objects
     // TODO: Make this generic later, or use dyn Any to store different Mesh types
     meshes: Vec<Mesh<TexturedVertex, u16>>, // Store the specific Mesh type for now
-    shaders: Vec<Program>, // Using Program struct directly for simplicity
-    textures: Vec<Texture>, // Using Texture struct directly for simplicity
+    shaders: Vec<Program>,                  // Using Program struct directly for simplicity
+    textures: Vec<Texture>,                 // Using Texture struct directly for simplicity
 
-    // TODO: Maybe use HashMaps for named resources later?
+                                            // TODO: Maybe use HashMaps for named resources later?
 }
 
 impl ResourceManager {
@@ -57,7 +57,6 @@ impl ResourceManager {
         self.textures.get(id)
     }
 
-
     // TODO: Add methods to load resources from files/bytes
     // e.g., load_mesh_from_obj_bytes, load_shader_from_strings, load_texture_from_path
 }
@@ -74,7 +73,7 @@ impl<V: 'static + Debug, I: 'static + Debug> AnyMesh for Mesh<V, I> {
     fn as_any(&self) -> &dyn Any {
         self
     }
-    
+
     fn vao(&self) -> GLuint {
         self.vao
     }
@@ -90,7 +89,7 @@ pub struct TypeErasedResourceMgr {
     meshes: Vec<Box<dyn AnyMesh>>, // Store mesh objects through trait object
     shaders: Vec<Program>,
     textures: Vec<Texture>,
-    
+
     // Keep track of mesh types for downcasting
     mesh_types: Vec<TypeId>,
 }
@@ -116,7 +115,10 @@ impl TypeErasedResourceMgr {
     }
 
     // Try to get a mesh as its concrete type
-    pub fn get_mesh<V: 'static + Debug, I: 'static + Debug>(&self, id: usize) -> Option<&Mesh<V, I>> {
+    pub fn get_mesh<V: 'static + Debug, I: 'static + Debug>(
+        &self,
+        id: usize,
+    ) -> Option<&Mesh<V, I>> {
         if let Some(mesh) = self.meshes.get(id) {
             // Try to downcast to the specific mesh type
             mesh.as_any().downcast_ref::<Mesh<V, I>>()
@@ -124,7 +126,7 @@ impl TypeErasedResourceMgr {
             None
         }
     }
-    
+
     // Get the mesh as a trait object if specific type isn't needed
     pub fn get_any_mesh(&self, id: usize) -> Option<&dyn AnyMesh> {
         self.meshes.get(id).map(|m| m.as_ref())
@@ -140,7 +142,7 @@ impl TypeErasedResourceMgr {
     pub fn get_shader(&self, id: usize) -> Option<&Program> {
         self.shaders.get(id)
     }
-    
+
     pub fn get_shader_mut(&mut self, id: usize) -> Option<&mut Program> {
         self.shaders.get_mut(id)
     }
@@ -166,7 +168,11 @@ impl TypeErasedResourceMgr {
         for x in 0..=divisions {
             for z in 0..=divisions {
                 vertices.push(Position {
-                    position: [x as f32 * step - size as f32/2.0, 0.0, z as f32 * step - size as f32/2.0],
+                    position: [
+                        x as f32 * step - size as f32 / 2.0,
+                        0.0,
+                        z as f32 * step - size as f32 / 2.0,
+                    ],
                 });
             }
         }
@@ -174,9 +180,9 @@ impl TypeErasedResourceMgr {
         for row in 0..divisions {
             for col in 0..divisions {
                 let i = row * (divisions + 1) + col;
-                indices.push(i);        // Horizontal line
+                indices.push(i); // Horizontal line
                 indices.push(i + 1);
-                indices.push(i);        // Vertical line
+                indices.push(i); // Vertical line
                 indices.push(i + divisions + 1);
             }
         }

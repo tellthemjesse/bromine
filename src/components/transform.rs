@@ -1,8 +1,4 @@
-use nalgebra_glm::{
-    Vec3, Mat4, Quat, 
-    translation, quat_to_mat4, quat_identity, 
-    scaling, vec3,
-};
+use nalgebra_glm::{quat_identity, quat_to_mat4, scaling, translation, vec3, Mat4, Quat, Vec3};
 
 #[derive(Clone, Debug)]
 pub struct Transform {
@@ -32,7 +28,11 @@ impl Transform {
     /// returned tuple items correspond to multiplication order: translation * rotation * scale
     pub fn to_components(&self) -> (Mat4, Mat4, Mat4) {
         // TODO: Let shaders compute final model matrix
-        (translation(&self.position), quat_to_mat4(&self.rotation), scaling(&self.scale))
+        (
+            translation(&self.position),
+            quat_to_mat4(&self.rotation),
+            scaling(&self.scale),
+        )
     }
 
     pub fn with_position(mut self, p: Vec3) -> Self {

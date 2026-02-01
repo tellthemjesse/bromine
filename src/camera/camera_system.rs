@@ -1,10 +1,11 @@
-use nalgebra_glm::{vec3, cross, normalize, look_at};
+use nalgebra_glm::{cross, look_at, normalize, vec3};
 
-use crate::types::{EcsWorld, Transform};
 use crate::tags::CameraTag;
+use crate::types::{EcsWorld, Transform};
 
 pub fn run(world: &mut EcsWorld) {
-    let camera_transform = world.query::<(&Transform, &CameraTag)>()
+    let camera_transform = world
+        .query::<(&Transform, &CameraTag)>()
         .next()
         .map(|(transform, _tag)| transform);
 

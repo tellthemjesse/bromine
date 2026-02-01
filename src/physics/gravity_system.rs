@@ -1,12 +1,13 @@
-use crate::types::{EcsWorld, Transform, RigidBody};
-use crate::tags::PhysicsTag;
 use crate::constants::G_SIM;
+use crate::tags::PhysicsTag;
+use crate::types::{EcsWorld, RigidBody, Transform};
 use nalgebra_glm::normalize;
 
 const EPSILON: f32 = 1e-6;
 
 pub fn run(world: &mut EcsWorld) {
-    let mut physics_entities: Vec<(&Transform, &mut RigidBody)> = world.query_mut::<(&Transform, &mut RigidBody, &PhysicsTag)>()
+    let mut physics_entities: Vec<(&Transform, &mut RigidBody)> = world
+        .query_mut::<(&Transform, &mut RigidBody, &PhysicsTag)>()
         .map(|(transform, rb, _)| (transform, rb))
         .collect();
 

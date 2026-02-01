@@ -1,6 +1,6 @@
-use crate::types::{EcsWorld, Entity, Transform, RigidBody, Collider3D};
+use crate::types::{Collider3D, EcsWorld, Entity, RigidBody, Transform};
+use nalgebra_glm::{dot, reflect_vec, Vec3};
 use std::collections::{HashMap, HashSet};
-use nalgebra_glm::{Vec3, dot, reflect_vec};
 
 pub fn run(world: &mut EcsWorld) {
     let collision_pairs = world.collider_cache.clone();
@@ -9,14 +9,12 @@ pub fn run(world: &mut EcsWorld) {
     let mut displacement_map: HashMap<Entity, Vec3> = HashMap::new();
 
     for (entity_1, entity_2) in collision_pairs {
-        let query_1 = world
-            .query_entity::<(&RigidBody, &Collider3D)>(entity_1);
-        let query_2 = world
-            .query_entity::<(&RigidBody, &Collider3D)>(entity_2);
+        let query_1 = world.query_entity::<(&RigidBody, &Collider3D)>(entity_1);
+        let query_2 = world.query_entity::<(&RigidBody, &Collider3D)>(entity_2);
 
         if let (Some((rb_1, c1)), Some((rb_2, c2))) = (query_1, query_2) {
             if let Some((surface_normal, depth)) = c1.get_collision_info(c2) {
-                let velocity_1  = rb_1.velocity;
+                let velocity_1 = rb_1.velocity;
                 let velocity_2 = rb_2.velocity;
                 let velocity_rel = velocity_2 - velocity_1;
                 let velocity_along_normal = dot(&velocity_rel, &surface_normal);
@@ -49,12 +47,18 @@ pub fn run(world: &mut EcsWorld) {
                     let displacement_1 = surface_normal * depth;
                     let displacement_2 = surface_normal * depth;
 
-                    let _ = displacement_map.entry(entity_1)
-                        .and_modify(|x| { *x += displacement_1; })
+                    let _ = displacement_map
+                        .entry(entity_1)
+                        .and_modify(|x| {
+                            *x += displacement_1;
+                        })
                         .or_insert(displacement_1);
 
-                    let _ = displacement_map.entry(entity_1)
-                        .and_modify(|x| { *x += displacement_2; })
+                    let _ = displacement_map
+                        .entry(entity_1)
+                        .and_modify(|x| {
+                            *x += displacement_2;
+                        })
                         .or_insert(displacement_2);
                 }
             }

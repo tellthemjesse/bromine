@@ -1,15 +1,16 @@
 use std::num::NonZeroU32;
-use std::time::Instant;
 use std::path::Path;
+use std::time::Instant;
 
-use winit::{
-    application::ApplicationHandler,
-    dpi::LogicalSize,
-    event::{DeviceEvent, DeviceId, StartCause, WindowEvent},
-    event_loop::{ActiveEventLoop, ControlFlow},
-    raw_window_handle::HasWindowHandle,
-    window::{Theme, Window, WindowAttributes, WindowId}
-};
+use crate::constants::*;
+use crate::ecs::entity::EntityConstructor;
+use crate::graphics::{mesh::Mesh, mesh::Texture};
+use crate::opengl_backend::shader::Program;
+use crate::physics::spacetime_curvature::SpacetimeCurvature;
+use crate::resources::manager::TypeErasedResourceMgr;
+use crate::tags::{CameraTag, PhysicsTag};
+use crate::tags::{DebugTag, MovingObjectTag, SpacetimeMeshTag};
+use crate::types::{Collider3D, EcsWorld, Renderable, RigidBody, Transform};
 use glutin::{
     config::ConfigTemplateBuilder,
     context::{ContextAttributesBuilder, PossiblyCurrentContext},
@@ -20,18 +21,14 @@ use glutin::{
 use glutin_winit::DisplayBuilder;
 use nalgebra_glm::{perspective, vec3, Vec3};
 use obj::{load_obj, Position, TexturedVertex};
-use crate::types::{EcsWorld, Transform, Renderable, RigidBody, Collider3D};
-use crate::tags::{DebugTag, MovingObjectTag, SpacetimeMeshTag};
-use crate::graphics::{
-    mesh::Mesh,
-    mesh::Texture,
+use winit::{
+    application::ApplicationHandler,
+    dpi::LogicalSize,
+    event::{DeviceEvent, DeviceId, StartCause, WindowEvent},
+    event_loop::{ActiveEventLoop, ControlFlow},
+    raw_window_handle::HasWindowHandle,
+    window::{Theme, Window, WindowAttributes, WindowId},
 };
-use crate::ecs::entity::EntityConstructor;
-use crate::constants::*;
-use crate::opengl_backend::shader::Program;
-use crate::physics::spacetime_curvature::SpacetimeCurvature;
-use crate::resources::manager::TypeErasedResourceMgr;
-use crate::tags::{PhysicsTag, CameraTag};
 
 const WIDTH: u32 = 1280;
 const HEIGHT: u32 = 720;
@@ -56,7 +53,13 @@ pub struct WindowContext {
 }
 
 impl WindowContext {
-    pub fn deconstruct(&mut self) -> (&mut Window, &mut Surface<WindowSurface>, &mut PossiblyCurrentContext) {
+    pub fn deconstruct(
+        &mut self,
+    ) -> (
+        &mut Window,
+        &mut Surface<WindowSurface>,
+        &mut PossiblyCurrentContext,
+    ) {
         (&mut self.window, &mut self.surface, &mut self.context)
     }
 }
@@ -69,28 +72,31 @@ pub struct Application {
 
 impl Application {
     pub fn new() -> Self {
-         Application {
+        Application {
             primary_window: None,
             world: EcsWorld::new(),
             timer: Instant::now(),
         }
     }
 
-    fn create_gl_window(&mut self, event_loop: &ActiveEventLoop) -> Result<WindowId, Box<dyn std::error::Error>> {
-        let conf_template_builder = ConfigTemplateBuilder::new()
-            .with_swap_interval(Some(0), Some(1));
+    fn create_gl_window(
+        &mut self,
+        event_loop: &ActiveEventLoop,
+    ) -> Result<WindowId, Box<dyn std::error::Error>> {
+        let conf_template_builder =
+            ConfigTemplateBuilder::new().with_swap_interval(Some(0), Some(1));
 
         let window_attributes = WindowAttributes::default()
             .with_title("DL3")
             .with_inner_size(LogicalSize::new(WIDTH, HEIGHT))
             .with_theme(Some(Theme::Dark));
 
-        let display_builder = DisplayBuilder::new()
-            .with_window_attributes(Some(window_attributes));
+        let display_builder = DisplayBuilder::new().with_window_attributes(Some(window_attributes));
 
-        let (built_window, config) = display_builder.build(event_loop, conf_template_builder, |mut configs| {
-            configs.next().unwrap()
-        })?;
+        let (built_window, config) =
+            display_builder.build(event_loop, conf_template_builder, |mut configs| {
+                configs.next().unwrap()
+            })?;
 
         let window = built_window.unwrap();
 
@@ -109,20 +115,17 @@ impl Application {
         );
         let surface = unsafe { gl_display.create_window_surface(&config, &attrs)? };
 
-        let context_attributes = ContextAttributesBuilder::new()
-            .build(Some(raw_window_handle));
+        let context_attributes = ContextAttributesBuilder::new().build(Some(raw_window_handle));
 
-        let not_current_context = unsafe { gl_display.create_context(&config, &context_attributes)? };
+        let not_current_context =
+            unsafe { gl_display.create_context(&config, &context_attributes)? };
         let context = not_current_context.make_current(&surface)?;
 
         gl::load_with(|symbol| {
             gl_display.get_proc_address(&crate::graphics::context::c_string(symbol).as_c_str())
         });
 
-        surface.set_swap_interval(
-            &context, 
-            SwapInterval::Wait(NonZeroU32::new(1).unwrap())
-        )?;
+        surface.set_swap_interval(&context, SwapInterval::Wait(NonZeroU32::new(1).unwrap()))?;
 
         window.set_cursor_visible(false);
         window.set_cursor_grab(winit::window::CursorGrabMode::Confined)?;
@@ -133,9 +136,15 @@ impl Application {
         }
 
         let aspect_ratio = width as f32 / height as f32;
-        self.world.projection_matrix = Some(perspective(aspect_ratio, 70.0f32.to_radians(), 0.1, 200.0));
+        self.world.projection_matrix =
+            Some(perspective(aspect_ratio, 70.0f32.to_radians(), 0.1, 200.0));
 
-        self.primary_window = Some(WindowContext { window_id, window, surface, context });
+        self.primary_window = Some(WindowContext {
+            window_id,
+            window,
+            surface,
+            context,
+        });
 
         Ok(window_id)
     }
@@ -180,7 +189,6 @@ impl Application {
 
         tracing::info!("creating initial entities...");
 
-
         let collider_camera = Collider3D::new(vec3(0.0, 0.0, 10.0), vec3(0.5, 0.5, 0.5));
 
         EntityConstructor::new(self.world.create_entity())
@@ -188,14 +196,12 @@ impl Application {
             .with(CameraTag::default())
             .with(MovingObjectTag::default())
             .with(collider_camera)
-            .with(RigidBody::new(0.0)
-                .with_restitution(0.0))
+            .with(RigidBody::new(0.0).with_restitution(0.0))
             .apply(&mut self.world);
 
         EntityConstructor::new(self.world.create_entity())
             .with(Transform::identity())
-            .with(Renderable::new(debug_cube_id, dshader_id, None)
-                .with_visibility_flag(false))
+            .with(Renderable::new(debug_cube_id, dshader_id, None).with_visibility_flag(false))
             .with(DebugTag::default())
             .apply(&mut self.world);
 
@@ -209,12 +215,17 @@ impl Application {
         let center = Vec3::zeros();
         let scale = vec3(1.5, 1.5, 1.5);
         EntityConstructor::new(self.world.create_entity())
-            .with(Transform::identity()
-                .with_position(center)
-                .with_scale(scale))
-            .with(Renderable::new(cube_mesh_id, default_shader_id, Some(tex0_id)))
-            .with(RigidBody::new(base_mass)
-                .with_restitution(0.5))
+            .with(
+                Transform::identity()
+                    .with_position(center)
+                    .with_scale(scale),
+            )
+            .with(Renderable::new(
+                cube_mesh_id,
+                default_shader_id,
+                Some(tex0_id),
+            ))
+            .with(RigidBody::new(base_mass).with_restitution(0.5))
             .with(PhysicsTag::default())
             .with(MovingObjectTag::default())
             .with(Collider3D::new(center, scale))
@@ -227,13 +238,21 @@ impl Application {
         let velocity = vec3(velocity.x + 0.1, velocity.y + 0.1, velocity.z + 0.1);
 
         EntityConstructor::new(self.world.create_entity())
-            .with(Transform::identity()
-                .with_position(position)
-                .with_scale(scale))
-            .with(Renderable::new(cube_mesh_id, default_shader_id, Some(tex0_id)))
-            .with(RigidBody::new(base_mass / 10.0)
-                .with_restitution(0.5)
-                .with_velocity(velocity))
+            .with(
+                Transform::identity()
+                    .with_position(position)
+                    .with_scale(scale),
+            )
+            .with(Renderable::new(
+                cube_mesh_id,
+                default_shader_id,
+                Some(tex0_id),
+            ))
+            .with(
+                RigidBody::new(base_mass / 10.0)
+                    .with_restitution(0.5)
+                    .with_velocity(velocity),
+            )
             .with(PhysicsTag::default())
             .with(MovingObjectTag::default())
             .with(Collider3D::new(position, scale))
@@ -245,13 +264,21 @@ impl Application {
         let velocity = get_tangent_velocity(position, center, base_mass);
 
         EntityConstructor::new(self.world.create_entity())
-            .with(Transform::identity()
-                .with_position(position)
-                .with_scale(scale))
-            .with(Renderable::new(cube_mesh_id, default_shader_id, Some(tex1_id)))
-            .with(RigidBody::new(base_mass / 10.0)
-                .with_restitution(0.5)
-                .with_velocity(velocity))
+            .with(
+                Transform::identity()
+                    .with_position(position)
+                    .with_scale(scale),
+            )
+            .with(Renderable::new(
+                cube_mesh_id,
+                default_shader_id,
+                Some(tex1_id),
+            ))
+            .with(
+                RigidBody::new(base_mass / 10.0)
+                    .with_restitution(0.5)
+                    .with_velocity(velocity),
+            )
             .with(PhysicsTag::default())
             .with(MovingObjectTag::default())
             .with(Collider3D::new(position, scale))
@@ -259,7 +286,7 @@ impl Application {
             .apply(&mut self.world);
 
         tracing::info!("initial entities successfully created");
-        
+
         tracing::info!("{:?}", self.world);
     }
 }
@@ -290,7 +317,9 @@ impl ApplicationHandler for Application {
             WindowEvent::Resized(dimensions) => window_ev::resized(self, window_id, dimensions),
             WindowEvent::CloseRequested => window_ev::close_requested(self, ev_loop, window_id),
             WindowEvent::RedrawRequested => window_ev::redraw_requested(self, window_id),
-            WindowEvent::KeyboardInput { event, .. } => window_ev::keyboard_input(self, ev_loop, event),
+            WindowEvent::KeyboardInput { event, .. } => {
+                window_ev::keyboard_input(self, ev_loop, event)
+            }
             WindowEvent::Focused(focused) => window_ev::focused(self, window_id, focused),
             _ => (),
         }
@@ -312,7 +341,11 @@ impl ApplicationHandler for Application {
         self.timer = Instant::now();
 
         self.world.input_state.clear_transient_state();
-        self.primary_window.as_ref().unwrap().window.request_redraw();
+        self.primary_window
+            .as_ref()
+            .unwrap()
+            .window
+            .request_redraw();
     }
 
     fn exiting(&mut self, _: &ActiveEventLoop) {
@@ -331,36 +364,42 @@ fn get_tangent_velocity(pos: Vec3, center: Vec3, mass: f32) -> Vec3 {
 }
 
 mod window_ev {
-    use winit::dpi::PhysicalSize;
-    use winit::window::WindowId;
-    use winit::event_loop::ActiveEventLoop;
-    use winit::event::{KeyEvent, ElementState};
-    use winit::keyboard::{KeyCode, PhysicalKey};
-    use std::num::NonZeroU32;
-    use nalgebra_glm::perspective;
-    use glutin::prelude::GlSurface;
-    use glutin::context::PossiblyCurrentGlContext;
-    use crate::{systems, camera, collision, physics};
     use super::Application;
+    use crate::{camera, collision, physics, systems};
+    use glutin::context::PossiblyCurrentGlContext;
+    use glutin::prelude::GlSurface;
+    use nalgebra_glm::perspective;
+    use std::num::NonZeroU32;
+    use winit::dpi::PhysicalSize;
+    use winit::event::{ElementState, KeyEvent};
+    use winit::event_loop::ActiveEventLoop;
+    use winit::keyboard::{KeyCode, PhysicalKey};
+    use winit::window::WindowId;
 
     /// Cosmetic type, that wraps mutable reference
     pub type AppRefMut<'a> = &'a mut Application;
 
     pub fn resized(app: AppRefMut, window_id: WindowId, physical_size: PhysicalSize<u32>) {
-        let (_, surface, context) = app.primary_window
-            .as_mut()
-            .unwrap()
-            .deconstruct();
+        let (_, surface, context) = app.primary_window.as_mut().unwrap().deconstruct();
 
-        if let (Some(width), Some(height)) =
-             (NonZeroU32::new(physical_size.width), NonZeroU32::new(physical_size.height)) {
+        if let (Some(width), Some(height)) = (
+            NonZeroU32::new(physical_size.width),
+            NonZeroU32::new(physical_size.height),
+        ) {
+            surface.resize(context, width, height);
+            let aspect_ratio = physical_size.width as f32 / physical_size.height as f32;
 
-             surface.resize(context, width, height);
-             let aspect_ratio = physical_size.width as f32 / physical_size.height as f32;
-
-             app.world.projection_matrix = Some(perspective(aspect_ratio, 50.0f32.to_radians(), 0.1, 100.0));
-             unsafe { gl::Viewport(0, 0, physical_size.width as i32, physical_size.height as i32); }
-             tracing::info!("window {window_id:?} resized to {physical_size:?}");
+            app.world.projection_matrix =
+                Some(perspective(aspect_ratio, 50.0f32.to_radians(), 0.1, 100.0));
+            unsafe {
+                gl::Viewport(
+                    0,
+                    0,
+                    physical_size.width as i32,
+                    physical_size.height as i32,
+                );
+            }
+            tracing::info!("window {window_id:?} resized to {physical_size:?}");
         }
     }
 
@@ -373,7 +412,7 @@ mod window_ev {
         }
     }
 
-    pub fn keyboard_input(app: AppRefMut, ev_loop: &ActiveEventLoop,event: KeyEvent) {
+    pub fn keyboard_input(app: AppRefMut, ev_loop: &ActiveEventLoop, event: KeyEvent) {
         if let PhysicalKey::Code(key_code) = event.physical_key {
             match event.state {
                 ElementState::Pressed => {
@@ -386,16 +425,15 @@ mod window_ev {
                 }
             }
         }
-        if event.physical_key == PhysicalKey::Code(KeyCode::Escape) && event.state == ElementState::Pressed {
+        if event.physical_key == PhysicalKey::Code(KeyCode::Escape)
+            && event.state == ElementState::Pressed
+        {
             ev_loop.exit();
         }
     }
 
     pub fn redraw_requested(app: AppRefMut, window_id: WindowId) {
-        let (window, surface, context) = app.primary_window
-            .as_mut()
-            .unwrap()
-            .deconstruct();
+        let (window, surface, context) = app.primary_window.as_mut().unwrap().deconstruct();
 
         if !context.is_current() {
             if let Err(e) = context.make_current(surface) {
@@ -418,7 +456,6 @@ mod window_ev {
         collision::collision_detection_system::run(&mut app.world);
         collision::collision_handle_system::run(&mut app.world);
 
-
         systems::render::run(&app.world);
         systems::debug_render_system::run(&app.world);
         systems::curvature_render::run(&app.world);
@@ -431,7 +468,10 @@ mod window_ev {
     }
 
     pub fn focused(app: AppRefMut, window_id: WindowId, focused: bool) {
-        tracing::info!("window {window_id:?} focus changed: {}", if focused { "active" } else { "not active" });
+        tracing::info!(
+            "window {window_id:?} focus changed: {}",
+            if focused { "active" } else { "not active" }
+        );
         if !focused {
             app.world.input_state.pressed_keys.clear();
             app.world.input_state.clear_transient_state();

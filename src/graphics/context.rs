@@ -1,12 +1,6 @@
-use gl::types::{
-    GLenum, GLuint, GLint,
-    GLchar, GLbitfield, GLfloat,
-};
-use std::{
-    ffi::CString,
-    ptr, str,
-};
+use gl::types::{GLbitfield, GLchar, GLenum, GLfloat, GLint, GLuint};
 use gl::GetUniformLocation;
+use std::{ffi::CString, ptr, str};
 
 pub fn compile_shader(src: &str, ty: GLenum) -> GLuint {
     let shader: GLuint;
@@ -33,7 +27,12 @@ pub fn compile_shader(src: &str, ty: GLenum) -> GLuint {
                 buf.as_mut_ptr() as *mut GLchar,
             );
 
-            panic!("{}", str::from_utf8(&buf).ok().expect("ShaderInfoLog didn't contain valid utf8"));
+            panic!(
+                "{}",
+                str::from_utf8(&buf)
+                    .ok()
+                    .expect("ShaderInfoLog didn't contain valid utf8")
+            );
         }
 
         shader
@@ -42,9 +41,7 @@ pub fn compile_shader(src: &str, ty: GLenum) -> GLuint {
 
 pub fn get_uniform_location(program: GLuint, name: &str) -> GLint {
     let c_str = c_string(name);
-    unsafe {
-        GetUniformLocation(program, c_str.as_ptr())
-    }
+    unsafe { GetUniformLocation(program, c_str.as_ptr()) }
 }
 
 pub fn clear_color(red: GLfloat, green: GLfloat, blue: GLfloat, alpha: GLfloat) {

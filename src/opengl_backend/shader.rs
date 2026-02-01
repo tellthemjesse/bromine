@@ -1,9 +1,9 @@
 use std::{mem, ptr, str};
 
 use gl::types::{GLboolean, GLchar, GLint, GLuint};
-use nalgebra_glm::{Vec3, Mat4};
+use nalgebra_glm::{Mat4, Vec3};
 
-use crate::graphics::context::{get_uniform_location, compile_shader};
+use crate::graphics::context::{compile_shader, get_uniform_location};
 
 #[derive(Debug)]
 pub struct Program {
@@ -44,14 +44,14 @@ impl Program {
 
                 let mut buf = Vec::with_capacity(len as usize);
                 buf.set_len((len as usize) - 1); // subtract 1 to skip the trailing null character
-                gl::GetProgramInfoLog(
-                    id,
-                    len,
-                    ptr::null_mut(),
-                    buf.as_mut_ptr() as *mut GLchar,
-                );
+                gl::GetProgramInfoLog(id, len, ptr::null_mut(), buf.as_mut_ptr() as *mut GLchar);
 
-                panic!("{}", str::from_utf8(&buf).ok().expect("ProgramInfoLog didn't contain valid utf8"));
+                panic!(
+                    "{}",
+                    str::from_utf8(&buf)
+                        .ok()
+                        .expect("ProgramInfoLog didn't contain valid utf8")
+                );
             }
 
             // deleting all shaders after the program is successfully linked
@@ -62,9 +62,7 @@ impl Program {
             }
         }
 
-        Self {
-            id,
-        }
+        Self { id }
     }
 
     pub fn use_program(&self) {
@@ -81,10 +79,7 @@ impl Program {
 
     pub fn set_vec3(&self, name: &str, src: &Vec3) {
         unsafe {
-            gl::Uniform3fv(
-                get_uniform_location(self.id, name),
-                1, src.as_ptr()
-            );
+            gl::Uniform3fv(get_uniform_location(self.id, name), 1, src.as_ptr());
         }
     }
 
@@ -92,8 +87,9 @@ impl Program {
         unsafe {
             gl::UniformMatrix4fv(
                 get_uniform_location(self.id, name),
-                1, gl::FALSE as GLboolean,
-                src.as_ptr()
+                1,
+                gl::FALSE as GLboolean,
+                src.as_ptr(),
             );
         }
     }
@@ -112,7 +108,7 @@ impl Program {
             gl::UNIFORM_BUFFER,
             (data.len() * mem::size_of::<T>()) as isize,
             data.as_ptr() as *const _,
-            gl::DYNAMIC_DRAW // Use GL_STATIC_DRAW for immutable data
+            gl::DYNAMIC_DRAW, // Use GL_STATIC_DRAW for immutable data
         );
         ubo
     }
@@ -127,7 +123,7 @@ impl Program {
             gl::UNIFORM_BUFFER,
             0,
             (data.len() * mem::size_of::<T>()) as isize,
-            data.as_ptr() as *const _
+            data.as_ptr() as *const _,
         );
     }
 }

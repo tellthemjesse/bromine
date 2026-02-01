@@ -1,5 +1,5 @@
-use crate::types::{EcsWorld, Transform, Renderable};
 use crate::graphics::mesh::Texture;
+use crate::types::{EcsWorld, Renderable, Transform};
 use nalgebra_glm::Mat4;
 
 pub fn run(world: &EcsWorld) {

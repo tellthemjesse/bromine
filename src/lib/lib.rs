@@ -1,3 +1,4 @@
 pub mod ecs;
-pub mod query;
+pub mod game;
 mod hash;
+pub mod query;

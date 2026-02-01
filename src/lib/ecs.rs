@@ -1,9 +1,9 @@
+use crate::hash::NoOpHash;
 use std::{
-    any::{Any, TypeId, type_name},
+    any::{type_name, Any, TypeId},
     cell::{Ref, RefCell, RefMut},
     collections::HashMap,
 };
-use crate::hash::NoOpHash;
 
 // ==== ENTITY ====
 
@@ -44,12 +44,22 @@ pub trait ComponentVec: Any {
 }
 
 impl<T: Component> ComponentVec for RefCell<Vec<Option<T>>> {
-    fn as_any(&self) -> &dyn Any { self }
-    fn as_any_mut(&mut self) -> &mut dyn Any { self }
-    fn len(&self) -> usize { self.borrow().len() }
-    fn push_none(&mut self) { self.borrow_mut().push(None); }
-    fn peek(&self, index: usize) -> Option<()> { 
-        self.borrow().get(index).and_then(|opt| opt.as_ref().map(|_| ())) 
+    fn as_any(&self) -> &dyn Any {
+        self
+    }
+    fn as_any_mut(&mut self) -> &mut dyn Any {
+        self
+    }
+    fn len(&self) -> usize {
+        self.borrow().len()
+    }
+    fn push_none(&mut self) {
+        self.borrow_mut().push(None);
+    }
+    fn peek(&self, index: usize) -> Option<()> {
+        self.borrow()
+            .get(index)
+            .and_then(|opt| opt.as_ref().map(|_| ()))
     }
 }
 
@@ -71,8 +81,12 @@ pub trait ResourceSlot: Any {
 }
 
 impl<T: Resource> ResourceSlot for RefCell<T> {
-    fn as_any(&self) -> &dyn Any { self }
-    fn as_any_mut(&mut self) -> &mut dyn Any { self }
+    fn as_any(&self) -> &dyn Any {
+        self
+    }
+    fn as_any_mut(&mut self) -> &mut dyn Any {
+        self
+    }
 }
 
 // ==== WORLD ====
@@ -123,7 +137,8 @@ impl World {
         match self.entity_components.get_mut(&type_id) {
             // update existing row
             Some(dynamic_components) => {
-                let mut components = dynamic_components.as_any_mut()
+                let mut components = dynamic_components
+                    .as_any_mut()
                     .downcast_mut::<RefCell<Vec<Option<T>>>>()
                     .unwrap() // can't fail unless downcast type is wrong
                     .borrow_mut();
@@ -138,7 +153,9 @@ impl World {
             // register a new component
             None => {
                 let mut components = Vec::<Option<T>>::with_capacity(self.entity_index as usize);
-                for _ in 0..self.entity_index { components.push(None); }
+                for _ in 0..self.entity_index {
+                    components.push(None);
+                }
 
                 components[index] = Some(component);
                 let box_ptr = Box::new(RefCell::new(components));
@@ -154,41 +171,45 @@ impl World {
     where
         T: Resource,
     {
-        self.resources.get(&TypeId::of::<T>())
+        self.resources
+            .get(&TypeId::of::<T>())
             .and_then(|box_ptr| box_ptr.as_any().downcast_ref::<RefCell<T>>())
             .map(|cell| cell.borrow_mut())
     }
-    
+
     /// Immutably borrows a [`Resource`]
     pub fn fetch_resource<'w, T>(&'w self) -> Option<Ref<'w, T>>
     where
         T: Resource,
     {
-        self.resources.get(&TypeId::of::<T>())
+        self.resources
+            .get(&TypeId::of::<T>())
             .and_then(|box_ptr| box_ptr.as_any().downcast_ref::<RefCell<T>>())
             .map(|cell| cell.borrow())
     }
-    
+
     /// Mutably borrows a [`ComponentVec`]
     pub fn borrow_components<'w, T>(&'w self) -> Option<RefMut<'w, Vec<Option<T>>>>
     where
         T: Component,
     {
-        self.entity_components.get(&TypeId::of::<T>())
+        self.entity_components
+            .get(&TypeId::of::<T>())
             .and_then(|box_ptr| box_ptr.as_any().downcast_ref::<RefCell<Vec<Option<T>>>>())
             .map(|cell| cell.borrow_mut())
     }
-    
+
     /// Immutably borrows a [`ComponentVec`]
     pub fn fetch_components<'w, T>(&'w self) -> Option<Ref<'w, Vec<Option<T>>>>
     where
         T: Component,
     {
-        self.entity_components.get(&TypeId::of::<T>())
+        self.entity_components
+            .get(&TypeId::of::<T>())
             .and_then(|box_ptr| box_ptr.as_any().downcast_ref::<RefCell<Vec<Option<T>>>>())
             .map(|cell| cell.borrow())
     }
-     
+
     fn fetch_entity_component_types(&self, enity: Entity) -> Vec<TypeId> {
         let mut type_ids = Vec::with_capacity(self.entity_components.len());
         for (component_type, box_ptr) in self.entity_components.iter() {
@@ -199,7 +220,6 @@ impl World {
         type_ids
     }
 }
-
 
 #[cfg(test)]
 mod test {
@@ -253,7 +273,7 @@ mod test {
 
         let origin_ref = world.fetch_resource::<WorldOrigin>().unwrap();
         let dt_ref = world.borrow_resource::<TimeDelta>().unwrap();
-        
+
         assert_eq!(origin, *origin_ref);
         assert_eq!(dt, *dt_ref);
     }

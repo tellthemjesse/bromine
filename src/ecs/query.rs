@@ -1,11 +1,11 @@
 use crate::ecs::component::Component;
 use crate::ecs::entity::Entity;
+use crate::ecs::world::ComponentStorage;
 use crate::ecs::world::EcsWorld;
 use std::any::TypeId;
+use std::collections::HashMap;
 use std::marker::PhantomData;
 use std::ptr::NonNull;
-use std::collections::HashMap;
-use crate::ecs::world::ComponentStorage;
 
 pub trait QueryItemData<'w> {
     type Item;
@@ -23,14 +23,14 @@ pub unsafe trait QueryItem<'w>: QueryItemData<'w> {
     // Panics if called on a mutable item type like &mut T.
     unsafe fn fetch(
         storages: &'w HashMap<TypeId, Box<dyn ComponentStorage>>,
-        entity_id: Entity
+        entity_id: Entity,
     ) -> Option<Self::Item>;
 
     // Fetch potentially MUTABLE data using raw pointer.
     // Safety: Caller (iterator) must ensure pointer validity and exclusive access if IS_MUTABLE is true.
     unsafe fn fetch_mut(
         storages_ptr: *mut HashMap<TypeId, Box<dyn ComponentStorage>>,
-        entity_id: Entity
+        entity_id: Entity,
     ) -> Option<Self::Item>;
 
     // Called by the WorldQuery to check access conflicts (e.g., multiple &mut T)
@@ -53,10 +53,11 @@ unsafe impl<'w, T: Component> QueryItem<'w> for &'w T {
 
     unsafe fn fetch(
         storages: &'w HashMap<TypeId, Box<dyn ComponentStorage>>,
-        entity_id: Entity
+        entity_id: Entity,
     ) -> Option<Self::Item> {
         let type_id = TypeId::of::<T>();
-        storages.get(&type_id)
+        storages
+            .get(&type_id)
             .and_then(|storage| storage.as_any().downcast_ref::<Vec<Option<T>>>())
             .and_then(|vec| vec.get(entity_id))
             .and_then(|opt| opt.as_ref())
@@ -64,7 +65,7 @@ unsafe impl<'w, T: Component> QueryItem<'w> for &'w T {
 
     unsafe fn fetch_mut(
         storages_ptr: *mut HashMap<TypeId, Box<dyn ComponentStorage>>,
-        entity_id: Entity
+        entity_id: Entity,
     ) -> Option<Self::Item> {
         // Safely dereference the mutable pointer to get immutable access
         let storages = &*storages_ptr;
@@ -95,22 +96,26 @@ unsafe impl<'w, T: Component> QueryItem<'w> for &'w mut T {
     // This fetch CANNOT provide &mut T from &HashMap. Panic!
     unsafe fn fetch(
         _storages: &'w HashMap<TypeId, Box<dyn ComponentStorage>>,
-        _entity_id: Entity
+        _entity_id: Entity,
     ) -> Option<Self::Item> {
-        panic!("Attempted to fetch mutable component {} using immutable query. Use query_mut().", std::any::type_name::<T>());
+        panic!(
+            "Attempted to fetch mutable component {} using immutable query. Use query_mut().",
+            std::any::type_name::<T>()
+        );
     }
 
     // fetch_mut CAN provide &mut T using the *mut HashMap pointer.
     unsafe fn fetch_mut(
         storages_ptr: *mut HashMap<TypeId, Box<dyn ComponentStorage>>,
-        entity_id: Entity
+        entity_id: Entity,
     ) -> Option<Self::Item> {
         let type_id = TypeId::of::<T>();
         // Safely get mutable access from the pointer
         let mutable_storages = &mut *storages_ptr;
 
         // Now get mutable access to the specific Box<dyn ComponentStorage>
-        mutable_storages.get_mut(&type_id)
+        mutable_storages
+            .get_mut(&type_id)
             .and_then(|storage_box| storage_box.as_any_mut().downcast_mut::<Vec<Option<T>>>())
             .and_then(|vec| vec.get_mut(entity_id))
             .and_then(|opt| opt.as_mut())
@@ -119,7 +124,7 @@ unsafe impl<'w, T: Component> QueryItem<'w> for &'w mut T {
     }
 
     fn check_access(type_ids: &mut Vec<TypeId>) {
-         if let Some(id) = Self::get_component_type_id() {
+        if let Some(id) = Self::get_component_type_id() {
             // Check for conflicts: another borrow (mut or immut) of the same type
             if type_ids.contains(&id) {
                 panic!("Query attempted to borrow component type {:?} multiple times (at least one mutably).", id);
@@ -143,14 +148,14 @@ unsafe impl<'w> QueryItem<'w> for Entity {
 
     unsafe fn fetch(
         _storages: &'w HashMap<TypeId, Box<dyn ComponentStorage>>,
-        entity_id: Entity
+        entity_id: Entity,
     ) -> Option<Self::Item> {
         Some(entity_id)
     }
 
     unsafe fn fetch_mut(
         _storages_ptr: *mut HashMap<TypeId, Box<dyn ComponentStorage>>,
-        entity_id: Entity
+        entity_id: Entity,
     ) -> Option<Self::Item> {
         // Entity ID is not mutable, so this is same as fetch
         Some(entity_id)
@@ -183,14 +188,14 @@ pub unsafe trait WorldQuery<'w>: WorldQueryData<'w> {
     // Safety: Caller must ensure entity has all required components.
     unsafe fn fetch(
         storages: &'w HashMap<TypeId, Box<dyn ComponentStorage>>,
-        entity_id: Entity
+        entity_id: Entity,
     ) -> Option<Self::Item>;
 
     // Fetch the combined item data for an entity (mutable context)
     // Safety: Caller must ensure entity has all required components and pointer is valid.
     unsafe fn fetch_mut(
         storages_ptr: *mut HashMap<TypeId, Box<dyn ComponentStorage>>,
-        entity_id: Entity
+        entity_id: Entity,
     ) -> Option<Self::Item>;
 }
 
@@ -273,7 +278,7 @@ impl_world_query_tuple!(Q1, Q2, Q3, Q4, Q5);
 pub struct QueryIter<'w, Q: WorldQuery<'w>> {
     world_storages: &'w HashMap<TypeId, Box<dyn ComponentStorage>>,
     matching_entities: std::vec::IntoIter<Entity>, // Iterator over IDs that match the query
-    _phantom: PhantomData<Q>, // Mark that we logically borrow Q
+    _phantom: PhantomData<Q>,                      // Mark that we logically borrow Q
 }
 
 impl<'w, Q: WorldQuery<'w>> QueryIter<'w, Q> {
@@ -324,7 +329,7 @@ impl<'w, Q: WorldQuery<'w>> Iterator for QueryIter<'w, Q> {
             }
             // If fetch failed (e.g., component unexpectedly missing), log error and try next entity
             else {
-                 eprintln!("Error: Query failed to fetch components for entity {}, expected components: {:?}", entity_id, Q::get_component_type_ids());
+                eprintln!("Error: Query failed to fetch components for entity {}, expected components: {:?}", entity_id, Q::get_component_type_ids());
             }
         }
         // No more matching entities found

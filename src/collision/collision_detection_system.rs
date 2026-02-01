@@ -1,10 +1,9 @@
-use crate::types::{EcsWorld, Entity, Collider3D};
+use crate::types::{Collider3D, EcsWorld, Entity};
 
 pub fn run(world: &mut EcsWorld) {
     let mut collider_cache = world.collider_cache.clone();
 
-    let colliders: Vec<(Entity, &Collider3D)> = world
-        .query::<(Entity, &Collider3D)>().collect();
+    let colliders: Vec<(Entity, &Collider3D)> = world.query::<(Entity, &Collider3D)>().collect();
 
     for i in 0..colliders.len() {
         let (entity_ith, collider_ith) = colliders.get(i).unwrap();

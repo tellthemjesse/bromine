@@ -1,17 +1,17 @@
 #![deny(unused_results)]
 
-mod ecs;
+mod application;
+mod camera;
+mod collision;
 mod components;
+mod constants;
+mod ecs;
+mod graphics;
+mod opengl_backend;
+mod physics;
 mod resources;
 mod systems;
-mod constants;
-mod application;
-mod graphics; 
-mod collision;
 mod tags;
-mod physics;
-mod camera;
-mod opengl_backend;
 mod types;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -21,9 +21,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .with_ansi(true)
         .with_max_level(tracing::Level::DEBUG)
         .init();
-    
-    let ev_loop = winit::event_loop::EventLoop::builder()
-        .build()?;
+
+    let ev_loop = winit::event_loop::EventLoop::builder().build()?;
 
     let mut app = application::Application::new();
 

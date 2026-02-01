@@ -1,10 +1,13 @@
-use std::ptr;
-use gl::{BindTexture, BindVertexArray, DrawElements, LINES, TEXTURE_2D, TRIANGLES, UNSIGNED_SHORT};
 use crate::graphics::mesh::Texture;
 use crate::resources::manager::AnyMesh;
+use gl::{
+    BindTexture, BindVertexArray, DrawElements, LINES, TEXTURE_2D, TRIANGLES, UNSIGNED_SHORT,
+};
+use std::ptr;
 
 pub fn draw<M>(src: &M, texture: Option<&Texture>)
-where M: AnyMesh + ?Sized
+where
+    M: AnyMesh + ?Sized,
 {
     unsafe {
         if let Some(texture) = texture {
@@ -28,7 +31,8 @@ where M: AnyMesh + ?Sized
 }
 
 pub fn draw_lines<M>(src: &M, texture: Option<&Texture>)
-where M: AnyMesh + ?Sized
+where
+    M: AnyMesh + ?Sized,
 {
     unsafe {
         if let Some(texture) = texture {
@@ -39,12 +43,7 @@ where M: AnyMesh + ?Sized
 
         BindVertexArray(src.vao());
 
-        DrawElements(
-            LINES,
-            src.indices_len(),
-            UNSIGNED_SHORT,
-            ptr::null(),
-        );
+        DrawElements(LINES, src.indices_len(), UNSIGNED_SHORT, ptr::null());
 
         BindVertexArray(0);
         BindTexture(TEXTURE_2D, 0);

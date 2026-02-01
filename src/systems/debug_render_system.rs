@@ -1,6 +1,6 @@
-use crate::types::{EcsWorld, Transform, Renderable, Collider3D};
-use nalgebra_glm::{Mat4, vec3};
 use crate::tags::DebugTag;
+use crate::types::{Collider3D, EcsWorld, Renderable, Transform};
+use nalgebra_glm::{vec3, Mat4};
 
 pub fn run(world: &EcsWorld) {
     let view_matrix = world.view_matrix.unwrap_or_else(|| {

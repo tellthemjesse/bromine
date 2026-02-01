@@ -13,16 +13,16 @@ pub struct EntityConstructor {
 impl EntityConstructor {
     pub fn new(entity: Entity) -> Self {
         tracing::debug!("preparing constructor for entity#{entity}",);
-        Self { 
-            entity, 
+        Self {
+            entity,
             operations: Vec::new(),
         }
     }
 
-    pub fn with<T: Component + Debug>(mut self, component: T) -> Self {  
+    pub fn with<T: Component + Debug>(mut self, component: T) -> Self {
         let entity = self.entity;
         self.operations.push(Box::new(move |world: &mut EcsWorld| {
-            world.add_component(entity, component); 
+            world.add_component(entity, component);
         }));
         self
     }
