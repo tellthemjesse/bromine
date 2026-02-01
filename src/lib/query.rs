@@ -1,4 +1,4 @@
-/// Caller must ensure, that the queryable components are registered
+/// Caller must ensure, that the queryable [`Component`](crate::ecs::Component)'s are registered
 #[macro_export]
 macro_rules! query {
     ($world:ident, $c:ty) => {
@@ -7,6 +7,31 @@ macro_rules! query {
     ($world:ident, $($c:ty),+) => {
          (
              $($world.borrow_components::<$c>().unwrap()),+
+         )
+    };
+}
+
+/// Prepend type with `mut` to get mutable access. Mutable queries are exclusive
+/// 
+/// # Panics 
+/// 
+/// Will panic if the queryable [`Resource`](crate::ecs::Resource) isn't registered
+#[macro_export]
+macro_rules! query_resource {
+    ($world:ident, mut $c:ty) => {
+        $world.borrow_resource::<$c>().unwrap()
+    };
+    ($world:ident, $(mut $c:ty),+) => {
+         (
+             $($world.borrow_resource::<$c>().unwrap()),+
+         )
+    };
+    ($world:ident, $c:ty) => {
+        $world.fetch_resource::<$c>().unwrap()
+    };
+    ($world:ident, $($c:ty),+) => {
+         (
+             $($world.fetch_resource::<$c>().unwrap()),+
          )
     };
 }
