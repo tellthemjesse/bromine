@@ -82,4 +82,8 @@ impl AddAssign<(f64, f64)> for MouseDelta {
 
 impl_resource!(MouseDelta);
 
+#[derive(Debug, Clone, Copy)]
 pub struct TimeDelta(f64);
+
+impl_resource!(TimeDelta);
+impl_newtype!(TimeDelta, f64);

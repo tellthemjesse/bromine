@@ -8,7 +8,7 @@ use glutin::{
 };
 use glutin_winit::DisplayBuilder;
 use raw_window_handle::HasWindowHandle;
-use std::{collections::HashSet, ffi::CString, mem::forget, num::NonZeroU32, str::FromStr, time::Instant};
+use std::{collections::HashSet, ffi::CString, num::NonZeroU32, time::Instant};
 use winit::{
     application::ApplicationHandler,
     dpi::LogicalSize,
@@ -17,7 +17,7 @@ use winit::{
     window::{Theme, Window, WindowAttributes, WindowId},
 };
 
-use crate::ecs::resources::{MouseDelta, PressedKeys, Projection};
+use crate::ecs::resources::{MouseDelta, PressedKeys, Projection, TimeDelta};
 
 const WINDOW_WIDTH: u32 = 1600;
 const WINDOW_HEIGHT: u32 = 900;
@@ -106,8 +106,8 @@ impl Game for Application {
             unsafe { gl_display.create_context(&config, &context_attributes)? };
         let context = not_current_context.make_current(&surface)?;
 
-        gl::load_with(|symbol| {
-            gl_display.get_proc_address(CString::from_str(symbol).unwrap().as_c_str())
+        gl::load_with(|s| {
+            gl_display.get_proc_address(CString::new(s).unwrap().as_c_str())
         });
 
         surface.set_swap_interval(&context, SwapInterval::Wait(NonZeroU32::new(1).unwrap()))?;
@@ -139,12 +139,14 @@ impl Game for Application {
                 Projection::from(Mat4::perspective_rh_gl(FOV_Y, aspect_ratio, 0.0, 100.0));
             self.world.register_resourse(projection_mat);
         }
-        // add input state 
+        // add window state
         {
             let pressed_keys = PressedKeys::from(HashSet::new());
             let mouse_delta = MouseDelta::new(0.0, 0.0);
+            let time_delta = TimeDelta::from(0.0);
             self.world.register_resourse(pressed_keys);
             self.world.register_resourse(mouse_delta);
+            self.world.register_resourse(time_delta);
         }
 
         tracing::warn!("prep_game_world is not yet implemented");
@@ -206,17 +208,17 @@ impl ApplicationHandler for Application {
     }
 
     fn about_to_wait(&mut self, _: &ActiveEventLoop) {
+        let dt = self.timer.elapsed().as_secs_f64();
+        self.timer = Instant::now();
+        
         let world = &mut self.world;
         {
-            let (mut pressed_keys, mut mouse_delta) =
-                query_resource!(world, mut PressedKeys, mut MouseDelta);
+            let (mut pressed_keys, mut mouse_delta, mut time_delta) =
+                query_resource!(world, mut PressedKeys, mut MouseDelta, mut TimeDelta);
             pressed_keys.clear();
             mouse_delta.clear();
+            *time_delta = dt.into();
         }
-
-        let dt = self.timer.elapsed().as_secs_f32();
-        //self.world.delta_time = delta;
-        self.timer = Instant::now();
 
         self.get_window().request_redraw();
     }
@@ -232,14 +234,15 @@ mod window_ev {
     use crate::ecs::resources::{MouseDelta, PressedKeys, Projection};
     use engine::query_resource;
     use glam::Mat4;
-    use glutin::context::PossiblyCurrentGlContext;
-    use glutin::prelude::GlSurface;
+    use glutin::{context::PossiblyCurrentGlContext, prelude::GlSurface};
     use std::num::NonZeroU32;
-    use winit::dpi::PhysicalSize;
-    use winit::event::{ElementState, KeyEvent};
-    use winit::event_loop::ActiveEventLoop;
-    use winit::keyboard::{KeyCode, PhysicalKey};
-    use winit::window::WindowId;
+    use winit::{
+        dpi::PhysicalSize,
+        event::{ElementState, KeyEvent},
+        event_loop::ActiveEventLoop,
+        keyboard::{KeyCode, PhysicalKey},
+        window::WindowId,
+    };
 
     pub fn resized(app: &mut Application, window_id: WindowId, physical_size: PhysicalSize<u32>) {
         let (_, surface, context) = app.primary_window.as_mut().unwrap().deconstruct();
