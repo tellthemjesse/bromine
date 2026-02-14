@@ -153,7 +153,7 @@ impl Application {
         tracing::info!("loading resources...");
         let resource_manager = &mut self.world.resource_manager;
 
-        let resources_path = Path::new(env!("CARGO_MANIFEST_DIR")).join("resources");
+        let resources_path = Path::new(env!("CARGO_MANIFEST_DIR")).join("game_resources");
         let textures_path = resources_path.join("textures");
 
         let texture_path0 = textures_path.join("texture9.jpg");
