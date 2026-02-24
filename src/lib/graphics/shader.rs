@@ -1,10 +1,11 @@
 use std::collections::HashMap;
+use anyhow::anyhow;
 
 #[derive(Debug, Clone, Copy)]
 #[non_exhaustive]
 #[repr(u32)]
 pub enum ShaderStage {
-    Vertex = gl::VERTEX_SHADER, 
+    Vertex = gl::VERTEX_SHADER,
     Fragment = gl::FRAGMENT_SHADER,
 }
 
@@ -24,6 +25,20 @@ pub enum UniformKind {
     Sampler2D = gl::SAMPLER_2D,
 }
 
+impl TryFrom<u32> for UniformKind {
+    type Error = anyhow::Error;
+
+    fn try_from(value: u32) -> Result<Self, Self::Error> {
+        match value {
+            gl::FLOAT => Ok(UniformKind::Float),
+            gl::FLOAT_VEC3 => Ok(UniformKind::Vec3),
+            gl::FLOAT_MAT4 => Ok(UniformKind::Mat4),
+            gl::SAMPLER_2D => Ok(UniformKind::Sampler2D),
+            _ => Err(anyhow!("Unknown uniform kind: {value} (0x{value:X})"))
+        }
+    }
+}
+
 #[derive(Debug, Clone, Copy)]
 pub struct UniformDesc {
     pub kind: UniformKind,
@@ -34,4 +49,10 @@ pub struct UniformDesc {
 pub struct ShaderProgramDesc {
     pub shaders: Vec<ShaderDesc>,
     pub uniforms: HashMap<String, UniformDesc>,
+}
+
+impl ShaderProgramDesc {
+    pub fn new(shaders: Vec<ShaderDesc>, uniforms: HashMap<String, UniformDesc>) -> Self {
+        Self { shaders, uniforms }
+    }
 }
