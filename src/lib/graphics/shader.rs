@@ -15,6 +15,12 @@ pub struct ShaderDesc {
     pub stage: ShaderStage,
 }
 
+impl ShaderDesc {
+    pub fn new(name: impl Into<String>, stage: ShaderStage) -> Self {
+        Self { debug_name: name.into(), stage, }
+    }
+}
+
 #[derive(Debug, Clone, Copy)]
 #[non_exhaustive]
 #[repr(u32)]

@@ -29,14 +29,14 @@ impl GlShaderProgram {
 
 /// Compiles a shader
 pub fn compile_shader(source: impl Into<Vec<u8>>, desc: ShaderDesc) -> anyhow::Result<GlShader> {
-    let id: u32;
+    let shader: u32;
     let src = c_string(source);
     let mut status = gl::FALSE as i32;
     
     unsafe {
-        id = gl::CreateShader(desc.stage as u32);
-        gl::ShaderSource(id, 1, &src.as_ptr(), ptr::null());
-        gl::GetShaderiv(id, gl::COMPILE_STATUS, &mut status);
+        shader = gl::CreateShader(desc.stage as u32);
+        gl::ShaderSource(shader, 1, &src.as_ptr(), ptr::null());
+        gl::GetShaderiv(shader, gl::COMPILE_STATUS, &mut status);
     }
     
     if status != gl::TRUE as i32 {
@@ -44,7 +44,7 @@ pub fn compile_shader(source: impl Into<Vec<u8>>, desc: ShaderDesc) -> anyhow::R
         return Err(anyhow!("shader compilation failed"));
     }
     
-    Ok(GlShader { id, desc })
+    Ok(GlShader { id: shader, desc })
 }
 
 /// Links a shader program
@@ -53,16 +53,16 @@ pub fn compile_shader(source: impl Into<Vec<u8>>, desc: ShaderDesc) -> anyhow::R
 /// 
 /// Deletes [`GlShader`] objects after done linking
 pub fn link_program(shaders: Vec<GlShader>) -> anyhow::Result<GlShaderProgram> {
-    let id: u32;
+    let program: u32;
     let mut is_linked = gl::FALSE as i32;
     
     unsafe { 
-        id = gl::CreateProgram();
+        program = gl::CreateProgram();
         for shader in &shaders {
-            gl::AttachShader(id, shader.id);
+            gl::AttachShader(program, shader.id);
         }
-        gl::LinkProgram(id);
-        gl::GetProgramiv(id, gl::LINK_STATUS, &mut is_linked);
+        gl::LinkProgram(program);
+        gl::GetProgramiv(program, gl::LINK_STATUS, &mut is_linked);
     }
     
     if is_linked != gl::TRUE as i32 {
@@ -77,10 +77,10 @@ pub fn link_program(shaders: Vec<GlShader>) -> anyhow::Result<GlShaderProgram> {
         shaders_.push(shader.desc);
     }
         
-   let uniforms = get_uniforms(id)?;
+   let uniforms = get_uniforms(program)?;
     
     Ok(GlShaderProgram {
-        id,
+        id: program,
         desc: ShaderProgramDesc::new(shaders_, uniforms)
     })
 }
@@ -145,5 +145,49 @@ fn get_uniforms(program: u32) -> anyhow::Result<HashMap<String, UniformDesc>> {
 pub fn use_program(program: &GlShaderProgram) {
     unsafe {
         gl::UseProgram(program.id);
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+    
+    const VERTEX_SHADER: &'static str = r"
+        #version 450 core
+
+        layout (location = 0) in vec3 v_Position;
+        layout (location = 1) in vec2 v_TexCoords;
+        out vec2 f_TexCoords;
+
+        void main() {
+            gl_Position = vec4(v_Position, 1.0);
+            f_TexCoords = v_TexCoords;
+        }
+    ";
+    
+    const FRAGMENT_SHADER: &'static str = r"
+        #version 450 core
+
+        in vec2 f_TexCoords;
+        out vec4 FragColor; 
+
+        uniform sampler2D u_Texture;
+
+        void main() {
+            FragColor = texture(u_Texture, f_TexCoords);
+        }
+    "; 
+    
+    #[test]
+    fn test_shader_compilation() {
+        let v_desc = ShaderDesc::new("v_test", ShaderStage::Vertex);
+        let v_shader = compile_shader(VERTEX_SHADER, v_desc);
+        
+        let _ = v_shader.unwrap();
+        
+        let f_desc = ShaderDesc::new("f_test", ShaderStage::Fragment);
+        let f_shader = compile_shader(FRAGMENT_SHADER, f_desc);
+        
+        let _ = f_shader.unwrap();
     }
 }
