@@ -16,6 +16,7 @@ pub enum BufferUsage {
 }
 
 #[derive(Debug, Clone, Copy)]
+/// Describes the necessary info to create a buffer object
 pub struct BufferObjDesc {
     pub kind: BufferObjKind,
     pub usage: BufferUsage,
@@ -25,9 +26,4 @@ impl BufferObjDesc {
     pub fn new(kind: BufferObjKind, usage: BufferUsage) -> Self {
         Self { kind, usage }
     }
-}
-
-#[derive(Debug, Clone, Copy)]
-pub struct VertexAttrib {
-    
 }

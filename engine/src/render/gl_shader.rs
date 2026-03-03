@@ -6,13 +6,17 @@ use std::{collections::HashMap, ffi::CStr, ptr};
 /// Represents OpenGL shader
 pub struct GlShader {
     id: u32,
-    pub desc: ShaderDesc,
+    desc: ShaderDesc,
 }
 
 impl GlShader {
     /// Returns the underlying object id
     pub fn id(&self) -> u32 {
         self.id
+    }
+    /// Returns object descriptor
+    pub fn desc(&self) -> &ShaderDesc {
+        &self.desc
     }
 }
 
@@ -141,8 +145,9 @@ fn get_uniforms(program: u32) -> anyhow::Result<HashMap<String, UniformDesc>> {
 
     for index in 0..active_uniforms as u32 {
         let mut uniform_kind = 0;
+        // amount of characters written excluding null terminator
         let mut length = 0;
-        
+
         unsafe {
             gl::GetActiveUniform(
                 program,
@@ -153,12 +158,12 @@ fn get_uniforms(program: u32) -> anyhow::Result<HashMap<String, UniformDesc>> {
                 &mut uniform_kind,
                 buf.as_mut_ptr() as *mut gl::types::GLchar,
             );
-        
-            buf.set_len(length as usize);
-            
+
+            buf.set_len(length as usize + 1);
+
             // fn call accidentally failed with "data provided is not nul terminated"
             // maybe manually updating the buffer length fixes that ^
-            
+
             let uniform_name_cstr = CStr::from_bytes_with_nul(&buf)?;
             let uniform_name = uniform_name_cstr.to_str()?.to_string();
 

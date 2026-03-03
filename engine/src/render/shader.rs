@@ -1,5 +1,5 @@
-use std::collections::HashMap;
 use anyhow::anyhow;
+use std::collections::HashMap;
 
 #[derive(Debug, Clone, Copy)]
 #[non_exhaustive]
@@ -17,7 +17,10 @@ pub struct ShaderDesc {
 
 impl ShaderDesc {
     pub fn new(name: impl Into<String>, stage: ShaderStage) -> Self {
-        Self { debug_name: name.into(), stage, }
+        Self {
+            debug_name: name.into(),
+            stage,
+        }
     }
 }
 
@@ -40,7 +43,7 @@ impl TryFrom<u32> for UniformKind {
             gl::FLOAT_VEC3 => Ok(UniformKind::Vec3),
             gl::FLOAT_MAT4 => Ok(UniformKind::Mat4),
             gl::SAMPLER_2D => Ok(UniformKind::Sampler2D),
-            _ => Err(anyhow!("unknown uniform kind: {value} (0x{value:X})"))
+            _ => Err(anyhow!("unknown uniform kind: {value} (0x{value:X})")),
         }
     }
 }
