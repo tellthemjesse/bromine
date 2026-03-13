@@ -1,13 +1,13 @@
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[non_exhaustive]
 #[repr(u32)]
 pub enum BufferObjKind {
     Vertex = gl::ARRAY_BUFFER,
-    Index = gl::ELEMENT_ARRAY_BUFFER,
+    Element = gl::ELEMENT_ARRAY_BUFFER,
     Uniform = gl::UNIFORM_BUFFER,
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[non_exhaustive]
 #[repr(u32)]
 pub enum BufferUsage {

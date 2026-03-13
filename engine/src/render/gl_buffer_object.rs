@@ -9,6 +9,7 @@ pub struct GlBufferObject {
     id: u32,
     desc: BufferObjDesc,
     layout: Layout,
+    count: usize,
 }
 
 #[derive(Debug)]
@@ -88,6 +89,7 @@ impl GlBufferObject {
             id: buffer,
             desc,
             layout,
+            count: data.len()
         })
     }    
     /// Returns the underlying object id
@@ -101,6 +103,10 @@ impl GlBufferObject {
     /// Returns [`Layout`] of the buffered data
     pub fn layout(&self) -> &Layout {
         &self.layout
+    }
+    /// Returns number of elements stored in this buffer
+    pub fn count(&self) -> usize {
+        self.count
     }
 }
 
