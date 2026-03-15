@@ -3,10 +3,14 @@ name = "engine"
 version = "0.1.0"
 edition = "2024"
 
+[features]
+debug = ["dep:tracing"]
+
 [dependencies]
 winit = "0.30.10"
 anyhow = "1.0.100"
 gl = { path = "../gl" }
+tracing = { version = "0.1.44", optional = true }
 
 [dev-dependencies]
 gl_headless = { path = "../gl-headless" }

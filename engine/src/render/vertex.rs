@@ -29,5 +29,5 @@ pub struct VertexAttrib {
 }
 
 pub trait Vertex {
-    fn attributes() -> Vec<VertexAttrib>;
+    fn attributes() -> impl IntoIterator<Item = VertexAttrib>;
 }

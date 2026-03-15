@@ -1,14 +1,13 @@
 use super::buffer_object::*;
 use super::vertex::Vertex;
 use anyhow::anyhow;
-use std::{alloc::Layout, ffi::c_void};
+use std::ffi::c_void;
 
 #[derive(Debug)]
 /// Represents OpenGL buffer object
 pub struct GlBufferObject {
     id: u32,
     desc: BufferObjDesc,
-    layout: Layout,
     count: usize,
 }
 
@@ -19,15 +18,30 @@ pub struct GlVertexArray {
 }
 
 impl GlVertexArray {
-    /// Creates new vertex array for data type `T` that implementes trait [`Vertex`].
-    pub fn new<T: Vertex>() -> anyhow::Result<Self> {
+    /// Creates new vertex array
+    pub fn new() -> Self {
         let mut array = 0;
 
         unsafe {
             gl::GenVertexArrays(1, &mut array);
-            gl::BindVertexArray(array);
+        }
 
-            for attr in T::attributes() {
+        Self { id: array }
+    }
+    /// Binds this vertex array
+    pub fn bind(&self) {
+        unsafe {
+            gl::BindVertexArray(self.id);
+        }
+    }
+    /// Submits the attributes for given vertex type
+    ///
+    /// # Safety
+    ///
+    /// The caller must ensure that this buffer object is active
+    pub unsafe fn write<V: Vertex>(&self) -> anyhow::Result<()> {
+        unsafe {
+            for attr in V::attributes() {
                 gl::EnableVertexAttribArray(attr.index);
                 gl::VertexAttribPointer(
                     attr.index,
@@ -40,18 +54,22 @@ impl GlVertexArray {
 
                 let err = gl::GetError();
                 if err != gl::NO_ERROR {
-                    gl::DeleteVertexArrays(1, &mut array);
+                    gl::DeleteVertexArrays(1, &mut self.id.clone());
                     gl::BindVertexArray(0);
                     return Err(anyhow!(
-                        "failed to make an attribute pointer, err code: {err}"
+                        "failed to make an attribute pointer, err code: {err} ({err:#X})"
                     ));
                 }
             }
-
-            gl::BindVertexArray(0);
         }
 
-        Ok(Self { id: array })
+        Ok(())
+    }
+    /// Unbinds vertex array
+    pub fn unbind(&self) {
+        unsafe {
+            gl::BindVertexArray(0);
+        }
     }
     /// Returns the underlying object id
     pub fn id(&self) -> u32 {
@@ -60,38 +78,62 @@ impl GlVertexArray {
 }
 
 impl GlBufferObject {
-    /// Creates new buffer object from its descriptor and data of a type `T`
-    pub fn new<T>(data: Vec<T>, desc: BufferObjDesc) -> anyhow::Result<Self> {
-        let layout = Layout::for_value(&data);
+    /// Creates new empty buffer object
+    pub fn new(desc: BufferObjDesc) -> Self {
         let mut buffer = 0;
 
         unsafe {
             gl::GenBuffers(1, &mut buffer);
-            gl::BindBuffer(desc.kind as u32, buffer);
+        }
+
+        Self {
+            id: buffer,
+            desc,
+            count: 0,
+        }
+    }
+    /// Binds this buffer
+    pub fn bind(&self) {
+        unsafe {
+            gl::BindBuffer(self.desc().kind as u32, self.id);
+        }
+    }
+    /// Submits data to the GPU
+    ///
+    /// # Safety
+    ///
+    /// The caller must ensure that this buffer object is active
+    pub unsafe fn write<T>(&mut self, data: Vec<T>) -> anyhow::Result<()> {
+        if data.is_empty() {
+            return Err(anyhow!("cannot submit an empty buffer to the GPU"));
+        }
+
+        self.count = data.len();
+
+        unsafe {
             gl::BufferData(
-                desc.kind as u32,
-                layout.size() as isize,
+                self.desc.kind as u32,
+                (size_of::<T>() * self.count) as isize,
                 data.as_ptr() as *const c_void,
-                desc.usage as u32,
+                self.desc.usage as u32,
             );
 
             let err = gl::GetError();
             if err != gl::NO_ERROR {
-                gl::DeleteBuffers(1, &buffer);
-                gl::BindBuffer(desc.kind as u32, 0);
-                return Err(anyhow!("failed to buffer data, err code: {err}"));
+                gl::DeleteBuffers(1, &self.id);
+                gl::BindBuffer(self.desc.kind as u32, 0);
+                return Err(anyhow!("failed to buffer data, err code: {err} ({err:#X})"));
             }
-
-            gl::BindBuffer(desc.kind as u32, 0);
         }
 
-        Ok(Self {
-            id: buffer,
-            desc,
-            layout,
-            count: data.len()
-        })
-    }    
+        Ok(())
+    }
+    /// Unbinds this buffer
+    pub fn unbind(&self) {
+        unsafe {
+            gl::BindBuffer(self.desc().kind as u32, 0);
+        }
+    }
     /// Returns the underlying object id
     pub fn id(&self) -> u32 {
         self.id
@@ -99,10 +141,6 @@ impl GlBufferObject {
     /// Returns object descriptor
     pub fn desc(&self) -> &BufferObjDesc {
         &self.desc
-    }
-    /// Returns [`Layout`] of the buffered data
-    pub fn layout(&self) -> &Layout {
-        &self.layout
     }
     /// Returns number of elements stored in this buffer
     pub fn count(&self) -> usize {
@@ -123,12 +161,12 @@ mod tests {
             }
 
             impl Vertex for MyVertex {
-                fn attributes() -> Vec<VertexAttrib> {
-                    vec![VertexAttrib {
+                fn attributes() -> impl IntoIterator<Item = VertexAttrib> {
+                    [VertexAttrib {
                         index: 0,
                         size: 3,
                         kind: AttributeKind::Float,
-                        normalized: true,
+                        normalized: false,
                         stride: std::mem::size_of::<MyVertex>(),
                         offset: std::mem::offset_of!(MyVertex, position),
                     }]
@@ -140,8 +178,17 @@ mod tests {
             };
             let desc = BufferObjDesc::new(BufferObjKind::Vertex, BufferUsage::StaticDraw);
 
-            let _vbo = GlBufferObject::new(vec![v], desc).unwrap();
-            let _vao = GlVertexArray::new::<MyVertex>().unwrap();
+            let vao = GlVertexArray::new();
+            let mut vbo = GlBufferObject::new(desc);
+
+            vao.bind();
+            unsafe {
+                vbo.write(vec![v]).unwrap();
+                vao.write::<MyVertex>().unwrap();
+            }
+
+            vao.unbind();
+            vbo.unbind();
         });
         let _ = tfn.run_once();
     }
