@@ -6,4 +6,5 @@ pub use super::gl_mesh::*;
 pub use super::gl_shader::*;
 pub use super::renderable::*;
 pub use super::shader::*;
+pub use super::uniform::*;
 pub use super::vertex::*;

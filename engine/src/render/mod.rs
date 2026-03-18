@@ -7,4 +7,5 @@ pub mod gl_shader;
 pub mod prelude;
 pub mod renderable;
 pub mod shader;
+pub mod uniform;
 pub mod vertex;
