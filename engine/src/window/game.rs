@@ -1,9 +1,15 @@
-pub trait Game: winit::application::ApplicationHandler {
+use winit::{
+    application::ApplicationHandler,
+    event_loop::ActiveEventLoop,
+    window::WindowId,
+};
+
+pub trait Game: ApplicationHandler {
     /// Creates an OpenGL-compatible window, ready for rendering
     fn make_window(
         &mut self,
-        event_loop: &winit::event_loop::ActiveEventLoop,
-    ) -> anyhow::Result<winit::window::WindowId>;
+        event_loop: &ActiveEventLoop,
+    ) -> ::anyhow::Result<WindowId>;
     /// Loads game resources
     fn prep_game_world(&mut self);
     /// Drops game resources

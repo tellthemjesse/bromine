@@ -1,5 +1,5 @@
 pub mod ecs;
-pub mod game;
+pub mod window;
 mod hash;
 pub mod query;
 pub mod render;

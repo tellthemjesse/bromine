@@ -1,6 +1,6 @@
 use crate::hash::NoOpHash;
 use std::{
-    any::{type_name, Any, TypeId},
+    any::{Any, TypeId, type_name},
     cell::{Ref, RefCell, RefMut},
     collections::HashMap,
 };
@@ -210,8 +210,27 @@ impl World {
             .map(|cell| cell.borrow())
     }
 
+    pub fn map_to_entities<T>(&self) -> Option<Vec<Option<usize>>>
+    where
+        T: Component,
+    {
+        self.entity_components
+            .get(&TypeId::of::<T>())
+            .and_then(|box_ptr| box_ptr.as_any().downcast_ref::<RefCell<Vec<Option<T>>>>())
+            .map(|cell| {
+                cell.borrow()
+                    .iter()
+                    .enumerate()
+                    .map(|(entity, component)| match component {
+                        Some(_) => Some(entity),
+                        None => None,
+                    })
+                    .collect()
+            })
+    }
+
     #[allow(unused)]
-    fn fetch_entity_component_types(&self, enity: Entity) -> Vec<TypeId> {
+    pub(crate) fn fetch_entity_component_types(&self, enity: Entity) -> Vec<TypeId> {
         let mut type_ids = Vec::with_capacity(self.entity_components.len());
         for (component_type, box_ptr) in self.entity_components.iter() {
             if box_ptr.peek(enity.index() as usize).is_some() {
