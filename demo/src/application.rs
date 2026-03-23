@@ -1,9 +1,10 @@
+use crate::ecs::components::{Camera, Position};
 use crate::ecs::resources::{
-    MouseDelta, PressedKeys, Projection, Time, TimeDelta, Triangle, TriangleProgram,
+    MouseDelta, PressedKeys, Projection, Time, TimeDelta, Triangle, TriangleProgram, View,
 };
 use engine::render::prelude::*;
-use engine::{ecs::World, game::Game, query_resource};
-use glam::Mat4;
+use engine::{ecs::World, query_resource, window::game::Game};
+use glam::{Mat4, Vec3};
 use glutin::context::{ContextApi, Version};
 use glutin::{
     config::ConfigTemplateBuilder,
@@ -149,13 +150,16 @@ impl Game for Application {
     }
 
     fn prep_game_world(&mut self) {
-        // add projection matrix
+        // add projection & view matrix
         {
             let (width, height): (u32, u32) = self.get_window().inner_size().into();
             let aspect_ratio = width as f32 / height as f32;
             let projection_mat =
                 Projection::from(Mat4::perspective_rh_gl(FOV_Y, aspect_ratio, 0.0, 100.0));
             self.world.register_resourse(projection_mat);
+
+            let view_mat = View::from(Mat4::IDENTITY);
+            self.world.register_resourse(view_mat);
         }
         // add window state
         {
@@ -170,35 +174,8 @@ impl Game for Application {
         }
         // add shader resource
         {
-            let vertex_shader: &str = r"
-                #version 460 core
-
-                layout (location = 0) in vec3 v_Position;
-                layout (location = 1) in vec3 v_Color;
-                layout (location = 0) out vec3 f_Color;
-
-                void main() {
-                    gl_Position = vec4(v_Position, 1.0);
-                    f_Color = v_Color;
-                }
-            ";
-
-            let fragment_shader: &str = r"
-                #version 460 core
-
-                layout (location = 0) in vec3 f_Color;
-                layout (location = 0) out vec4 FragColor;
-                layout (location = 0) uniform float u_Time;
-
-                void main() {
-                    mat3 transform = mat3(
-                        sin(u_Time), 0.0, 0.0,
-                        0.0, cos(u_Time), 0.0,
-                        0.0, 0.0, -sin(u_Time)
-                    );
-                    FragColor = vec4(abs(transform * f_Color), 1.0);
-                }
-            ";
+            let vertex_shader: &str = include_str!("shaders/Triangle.vert");
+            let fragment_shader: &str = include_str!("shaders/Triangle.frag");
 
             let v_desc = ShaderDesc::new("v_test", ShaderStage::Vertex);
             let v_shader = compile_shader(vertex_shader, v_desc).unwrap();
@@ -273,6 +250,15 @@ impl Game for Application {
                 .unwrap();
             self.world.register_resourse(Triangle(triangle));
         }
+        // add camera
+        {
+            let camera = Camera::default();
+            let position = Position::from(Vec3::ZERO);
+
+            let entity = self.world.spawn_entity();
+            self.world.register_component(entity, camera);
+            self.world.register_component(entity, position);
+        }
     }
 
     fn drop_game_world(&mut self) {
@@ -336,17 +322,11 @@ impl ApplicationHandler for Application {
 
         let world = &mut self.world;
         {
-            let (mut pressed_keys, mut mouse_delta, mut time_delta, mut time) = query_resource!(
-                world,
-                mut PressedKeys,
-                mut MouseDelta,
-                mut TimeDelta,
-                mut Time
-            );
-            pressed_keys.clear();
+            let (mut mouse_delta, mut time_delta, mut time) =
+                query_resource!(world, mut MouseDelta, mut TimeDelta, mut Time);
             mouse_delta.clear();
             *time_delta = dt.into();
-            *time += self.timer.elapsed().as_secs_f32() * 1200.0;
+            *time += dt as f32;
         }
 
         self.get_window().request_redraw();
@@ -362,7 +342,10 @@ mod window_ev {
     use super::FOV_Y;
     use crate::ecs::resources::Triangle;
     use crate::ecs::resources::TriangleProgram;
+    use crate::ecs::resources::View;
     use crate::ecs::resources::{MouseDelta, PressedKeys, Projection, Time};
+    use crate::ecs::systems::camera::s_camera_control;
+    use crate::ecs::systems::camera::s_camera_view;
     use engine::query_resource;
     use engine::render::prelude::Renderable;
     use glam::Mat4;
@@ -445,7 +428,12 @@ mod window_ev {
         }
 
         let world = &mut app.world;
-        let (prog, triangle, time) = query_resource!(world, TriangleProgram, Triangle, Time);
+
+        s_camera_control(world);
+        s_camera_view(world);
+
+        let (prog, triangle, time, view, proj) =
+            query_resource!(world, TriangleProgram, Triangle, Time, View, Projection);
 
         unsafe {
             gl::ClearColor(0.0, 0.0, 0.0, 1.0);
@@ -453,7 +441,9 @@ mod window_ev {
         }
 
         prog.0.bind();
+        prog.0.uniform_value(*view);
         prog.0.uniform_value(*time);
+        prog.0.uniform_value(*proj);
         triangle.0.draw();
 
         window.pre_present_notify();

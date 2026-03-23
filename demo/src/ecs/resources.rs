@@ -6,6 +6,7 @@ use std::collections::HashSet;
 use std::ops::AddAssign;
 use winit::keyboard::KeyCode;
 
+#[macro_export]
 macro_rules! impl_newtype {
     ($type:ty, $target:ty) => {
         impl std::ops::Deref for $type {
@@ -34,12 +35,40 @@ macro_rules! impl_newtype {
 /// World projection matrix
 pub struct Projection(Mat4);
 
+impl UniformValue<f32> for Projection {
+    fn name(&self) -> &str {
+        "u_Proj"
+    }
+
+    fn kind(&self) -> &UniformKind {
+        &UniformKind::Mat4
+    }
+
+    unsafe fn value_ptr(&self) -> *const f32 {
+        self.0.as_ref().as_ptr()
+    }
+}
+
 impl_resource!(Projection);
 impl_newtype!(Projection, Mat4);
 
 #[derive(Debug, Clone, Copy)]
 /// Camera view matrix
 pub struct View(Mat4);
+
+impl UniformValue<f32> for View {
+    fn name(&self) -> &str {
+        "u_View"
+    }
+
+    fn kind(&self) -> &UniformKind {
+        &UniformKind::Mat4
+    }
+
+    unsafe fn value_ptr(&self) -> *const f32 {
+        self.0.as_ref().as_ptr()
+    }
+}
 
 impl_resource!(View);
 impl_newtype!(View, Mat4);
@@ -84,6 +113,12 @@ impl_resource!(MouseDelta);
 
 #[derive(Debug, Clone, Copy)]
 pub struct TimeDelta(f64);
+
+impl TimeDelta {
+    pub fn as_f32(&self) -> f32 {
+        self.0 as f32
+    }
+}
 
 #[derive(Debug, Clone, Copy)]
 pub struct Time(f32);
