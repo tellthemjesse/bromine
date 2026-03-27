@@ -1,3 +1,4 @@
+use super::window_event::*;
 use crate::ecs::components::{Camera, Position};
 use crate::ecs::resources::{
     MouseDelta, PressedKeys, Projection, Time, TimeDelta, Triangle, TriangleProgram, View,
@@ -23,36 +24,30 @@ use winit::{
     window::{Theme, Window, WindowAttributes, WindowId},
 };
 
-const WINDOW_WIDTH: u32 = 1600;
-const WINDOW_HEIGHT: u32 = 900;
-const FOV_Y: f32 = 70.0_f32.to_radians();
+pub(super) const WINDOW_WIDTH: u32 = 1600;
+pub(super) const WINDOW_HEIGHT: u32 = 900;
+pub(super) const FOV_Y: f32 = 70.0_f32.to_radians();
 
-struct WindowContext {
-    window_id: WindowId,
-    window: Window,
-    surface: Surface<WindowSurface>,
-    context: PossiblyCurrentContext,
+pub(super) struct WindowContext {
+    pub window_id: WindowId,
+    pub window: Window,
+    pub surface: Surface<WindowSurface>,
+    pub context: PossiblyCurrentContext,
 }
 
 impl WindowContext {
-    fn deconstruct(
-        &mut self,
-    ) -> (
-        &mut Window,
-        &mut Surface<WindowSurface>,
-        &mut PossiblyCurrentContext,
-    ) {
-        (&mut self.window, &mut self.surface, &mut self.context)
+    pub(super) fn values(&self) -> (&Window, &Surface<WindowSurface>, &PossiblyCurrentContext) {
+        (&self.window, &self.surface, &self.context)
     }
 }
 
-pub struct Application {
-    primary_window: Option<WindowContext>,
-    world: World,
-    timer: Instant,
+pub struct ApplicationDemo {
+    pub(super) primary_window: Option<WindowContext>,
+    pub(super) world: World,
+    pub(super) timer: Instant,
 }
 
-impl Application {
+impl ApplicationDemo {
     pub fn new() -> Self {
         Self {
             primary_window: None,
@@ -67,7 +62,7 @@ impl Application {
     }
 }
 
-impl Game for Application {
+impl Game for ApplicationDemo {
     fn make_window(&mut self, event_loop: &ActiveEventLoop) -> anyhow::Result<WindowId> {
         let conf_template_builder =
             ConfigTemplateBuilder::new().with_swap_interval(Some(0), Some(1));
@@ -149,7 +144,7 @@ impl Game for Application {
         Ok(window_id)
     }
 
-    fn prep_game_world(&mut self) {
+    fn init_world(&mut self) {
         // add projection & view matrix
         {
             let (width, height): (u32, u32) = self.get_window().inner_size().into();
@@ -174,8 +169,8 @@ impl Game for Application {
         }
         // add shader resource
         {
-            let vertex_shader: &str = include_str!("shaders/Triangle.vert");
-            let fragment_shader: &str = include_str!("shaders/Triangle.frag");
+            let vertex_shader: &str = include_str!("../shaders/Triangle.vert");
+            let fragment_shader: &str = include_str!("../shaders/Triangle.frag");
 
             let v_desc = ShaderDesc::new("v_test", ShaderStage::Vertex);
             let v_shader = compile_shader(vertex_shader, v_desc).unwrap();
@@ -261,12 +256,20 @@ impl Game for Application {
         }
     }
 
-    fn drop_game_world(&mut self) {
+    fn deinit_world(&mut self) {
         tracing::warn!("drop_game_world is not yet implemented");
+    }
+
+    fn world(&self) -> &World {
+        &self.world
+    }
+
+    fn world_mut(&mut self) -> &mut World {
+        &mut self.world
     }
 }
 
-impl ApplicationHandler for Application {
+impl ApplicationHandler for ApplicationDemo {
     fn new_events(&mut self, _: &ActiveEventLoop, cause: StartCause) {
         if cause == StartCause::Init {
             tracing::info!("event loop initialized");
@@ -283,7 +286,7 @@ impl ApplicationHandler for Application {
                 Err(e) => tracing::error!("failed to create primary window: {e}"),
             }
 
-            self.prep_game_world();
+            self.init_world();
         }
     }
 
@@ -293,8 +296,6 @@ impl ApplicationHandler for Application {
         window_id: WindowId,
         event: WindowEvent,
     ) {
-        use window_ev::*;
-
         match event {
             WindowEvent::Resized(dimensions) => resized(self, window_id, dimensions),
             WindowEvent::CloseRequested => close_requested(self, event_loop, window_id),
@@ -308,7 +309,7 @@ impl ApplicationHandler for Application {
     fn device_event(&mut self, _: &ActiveEventLoop, _: DeviceId, event: DeviceEvent) {
         match event {
             DeviceEvent::MouseMotion { delta } => {
-                let world = &mut self.world;
+                let world = self.world_mut();
                 let mut mouse_delta = query_resource!(world, mut MouseDelta);
                 *mouse_delta += delta;
             }
@@ -320,7 +321,7 @@ impl ApplicationHandler for Application {
         let dt = self.timer.elapsed().as_secs_f64();
         self.timer = Instant::now();
 
-        let world = &mut self.world;
+        let world = self.world_mut();
         {
             let (mut mouse_delta, mut time_delta, mut time) =
                 query_resource!(world, mut MouseDelta, mut TimeDelta, mut Time);
@@ -333,137 +334,7 @@ impl ApplicationHandler for Application {
     }
 
     fn exiting(&mut self, _: &ActiveEventLoop) {
+        self.deinit_world();
         tracing::info!("application exiting");
-    }
-}
-
-mod window_ev {
-    use super::Application;
-    use super::FOV_Y;
-    use crate::ecs::resources::Triangle;
-    use crate::ecs::resources::TriangleProgram;
-    use crate::ecs::resources::View;
-    use crate::ecs::resources::{MouseDelta, PressedKeys, Projection, Time};
-    use crate::ecs::systems::camera::s_camera_control;
-    use crate::ecs::systems::camera::s_camera_view;
-    use engine::query_resource;
-    use engine::render::prelude::Renderable;
-    use glam::Mat4;
-    use glutin::{context::PossiblyCurrentGlContext, prelude::GlSurface};
-    use std::num::NonZeroU32;
-    use winit::{
-        dpi::PhysicalSize,
-        event::{ElementState, KeyEvent},
-        event_loop::ActiveEventLoop,
-        keyboard::{KeyCode, PhysicalKey},
-        window::WindowId,
-    };
-
-    pub fn resized(app: &mut Application, window_id: WindowId, physical_size: PhysicalSize<u32>) {
-        let (_, surface, context) = app.primary_window.as_mut().unwrap().deconstruct();
-
-        if let (Some(width), Some(height)) = (
-            NonZeroU32::new(physical_size.width),
-            NonZeroU32::new(physical_size.height),
-        ) {
-            surface.resize(context, width, height);
-            let aspect_ratio = physical_size.width as f32 / physical_size.height as f32;
-
-            let world = &mut app.world;
-            let mut projection_mat = query_resource!(world, mut Projection);
-            *projection_mat = Mat4::perspective_rh_gl(FOV_Y, aspect_ratio, 0.1, 100.0).into();
-
-            unsafe {
-                gl::Viewport(
-                    0,
-                    0,
-                    physical_size.width as i32,
-                    physical_size.height as i32,
-                );
-            }
-            tracing::info!("window {window_id:?} resized to {physical_size:?}");
-        }
-    }
-
-    pub fn close_requested(app: &mut Application, ev_loop: &ActiveEventLoop, window_id: WindowId) {
-        tracing::info!("close requested for window {window_id:?}");
-
-        if app.primary_window.as_ref().unwrap().window_id == window_id {
-            tracing::info!("primary window closed");
-            ev_loop.exit();
-        }
-    }
-
-    pub fn keyboard_input(app: &mut Application, ev_loop: &ActiveEventLoop, event: KeyEvent) {
-        if let PhysicalKey::Code(key_code) = event.physical_key {
-            let world = &mut app.world;
-            let mut pressed_keys = query_resource!(world, mut PressedKeys);
-
-            match event.state {
-                ElementState::Pressed => {
-                    if !event.repeat {
-                        let _ = pressed_keys.insert(key_code);
-                    }
-                }
-                ElementState::Released => {
-                    let _ = pressed_keys.remove(&key_code);
-                }
-            }
-        }
-        if event.physical_key == PhysicalKey::Code(KeyCode::Escape)
-            && event.state == ElementState::Pressed
-        {
-            ev_loop.exit();
-        }
-    }
-
-    pub fn redraw_requested(app: &mut Application, window_id: WindowId) {
-        let (window, surface, context) = app.primary_window.as_mut().unwrap().deconstruct();
-
-        if !context.is_current() {
-            if let Err(e) = context.make_current(surface) {
-                tracing::error!("failed to make context current for redraw: {e}");
-                return;
-            }
-        }
-
-        let world = &mut app.world;
-
-        s_camera_control(world);
-        s_camera_view(world);
-
-        let (prog, triangle, time, view, proj) =
-            query_resource!(world, TriangleProgram, Triangle, Time, View, Projection);
-
-        unsafe {
-            gl::ClearColor(0.0, 0.0, 0.0, 1.0);
-            gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);
-        }
-
-        prog.0.bind();
-        prog.0.uniform_value(*view);
-        prog.0.uniform_value(*time);
-        prog.0.uniform_value(*proj);
-        triangle.0.draw();
-
-        window.pre_present_notify();
-
-        if let Err(e) = surface.swap_buffers(context) {
-            tracing::error!("failed to swap buffers for window {window_id:?}: {e}");
-        }
-    }
-
-    pub fn focused(app: &mut Application, window_id: WindowId, focused: bool) {
-        tracing::info!(
-            "window {window_id:?} focus changed: {}",
-            if focused { "active" } else { "not active" }
-        );
-        if !focused {
-            let world = &mut app.world;
-            let (mut pressed_keys, mut delta) =
-                query_resource!(world, mut PressedKeys, mut MouseDelta);
-            pressed_keys.clear();
-            delta.clear();
-        }
     }
 }

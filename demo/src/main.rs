@@ -1,4 +1,4 @@
-mod application;
+mod app;
 mod ecs;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -11,7 +11,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let ev_loop = winit::event_loop::EventLoop::builder().build()?;
 
-    let mut app = application::Application::new();
+    let mut app = app::ApplicationDemo::new();
 
     ev_loop.run_app(&mut app)?;
 
