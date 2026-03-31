@@ -1,3 +1,5 @@
+use anyhow::anyhow;
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[non_exhaustive]
 #[repr(u32)]
@@ -5,7 +7,30 @@
 pub enum Primitive {
     Points = gl::POINTS,
     Lines = gl::LINES,
+    LineLoop = gl::LINE_LOOP,
+    LineStrip = gl::LINE_STRIP,
+    LineStripAdjency = gl::LINE_STRIP_ADJACENCY,
     Triangles = gl::TRIANGLES,
+    TriangleStrip = gl::TRIANGLE_STRIP,
+    TriangleFan = gl::TRIANGLE_FAN,
+}
+
+impl TryFrom<u32> for Primitive {
+    type Error = anyhow::Error;
+
+    fn try_from(value: u32) -> Result<Self, Self::Error> {
+        match value {
+            gl::POINTS => Ok(Self::Points),
+            gl::LINES => Ok(Self::Lines),
+            gl::LINE_LOOP => Ok(Self::LineLoop),
+            gl::LINE_STRIP => Ok(Self::LineStrip),
+            gl::LINE_STRIP_ADJACENCY => Ok(Self::LineStripAdjency),
+            gl::TRIANGLES => Ok(Self::Triangles),
+            gl::TRIANGLE_STRIP => Ok(Self::TriangleStrip),
+            gl::TRIANGLE_FAN => Ok(Self::TriangleFan),
+            _ => Err(anyhow!("invalid enum")),
+        }
+    }
 }
 
 mod private {

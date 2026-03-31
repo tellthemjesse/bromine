@@ -1,4 +1,4 @@
-use super::{
+use crate::render::{
     buffer_object::{BufferObjDesc, BufferObjKind},
     element::*,
     gl_buffer_object::*,
@@ -159,7 +159,7 @@ impl Renderable for GlMesh {
 
 #[cfg(test)]
 mod tests {
-    use super::super::{buffer_object::*, vertex::*};
+    use crate::render::{buffer_object::*, vertex::*};
     use super::*;
 
     #[test]

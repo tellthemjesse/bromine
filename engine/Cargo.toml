@@ -11,6 +11,7 @@ winit = "0.30.10"
 anyhow = "1.0.100"
 gl = { path = "../gl" }
 tracing = { version = "0.1.44", optional = true }
+gltf = "1.4.1"
 
 [dev-dependencies]
 gl_headless = { path = "../gl-headless" }
