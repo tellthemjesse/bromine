@@ -1,8 +1,8 @@
-use std::ops::AddAssign;
-
 use engine::ecs::Component;
 use engine::impl_component;
+use engine::render::GlModel;
 use glam::Vec3;
+use std::ops::AddAssign;
 
 use crate::impl_newtype;
 
@@ -42,3 +42,7 @@ impl AddAssign<Vec3> for Position {
 
 impl_newtype!(Position, Vec3);
 impl_component!(Position);
+
+pub struct Model(GlModel);
+impl_newtype!(Model, GlModel);
+impl_component!(Model);

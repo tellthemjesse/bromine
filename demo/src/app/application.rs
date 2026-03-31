@@ -1,7 +1,7 @@
 use super::window_event::*;
-use crate::ecs::components::{Camera, Position};
+use crate::ecs::components::{Camera, Model, Position};
 use crate::ecs::resources::{
-    MouseDelta, PressedKeys, Projection, Time, TimeDelta, Triangle, TriangleProgram, View,
+    MouseDelta, PressedKeys, Projection, Time, TimeDelta, SceneProgram, View,
 };
 use engine::render::prelude::*;
 use engine::{ecs::World, query_resource, window::game::Game};
@@ -83,6 +83,10 @@ impl Game for ApplicationDemo {
             .unwrap();
 
         let window = built_window.unwrap();
+        window.set_cursor_visible(false);
+        window
+            .set_cursor_grab(winit::window::CursorGrabMode::Confined)
+            .unwrap();
 
         let gl_display = config.display();
 
@@ -169,8 +173,8 @@ impl Game for ApplicationDemo {
         }
         // add shader resource
         {
-            let vertex_shader: &str = include_str!("../shaders/Triangle.vert");
-            let fragment_shader: &str = include_str!("../shaders/Triangle.frag");
+            let vertex_shader: &str = include_str!("../shaders/Scene.vert");
+            let fragment_shader: &str = include_str!("../shaders/Scene.frag");
 
             let v_desc = ShaderDesc::new("v_test", ShaderStage::Vertex);
             let v_shader = compile_shader(vertex_shader, v_desc).unwrap();
@@ -181,69 +185,19 @@ impl Game for ApplicationDemo {
             let program = link_program(vec![v_shader, f_shader]);
 
             let prog = program.unwrap();
-            self.world.register_resourse(TriangleProgram(prog));
+            self.world.register_resourse(SceneProgram(prog));
         }
-        // add triangle mesh
+        // add models mesh
         {
-            struct MyVertex {
-                position: [f32; 3],
-                color: [f32; 3],
+            let path = format!(
+                "{}/../engine/resources/monkey/scene.gltf",
+                std::env!("CARGO_MANIFEST_DIR")
+            );
+
+            for gl_model in GlftFile::get_models(path) {
+                let entity = self.world.spawn_entity();
+                self.world.register_component(entity, Model::from(gl_model));
             }
-
-            impl Vertex for MyVertex {
-                fn attributes() -> impl IntoIterator<Item = VertexAttrib> {
-                    let stride = std::mem::size_of::<MyVertex>();
-                    let normalized = false;
-
-                    [
-                        VertexAttrib {
-                            index: 0,
-                            size: 3,
-                            kind: AttributeKind::Float,
-                            normalized,
-                            stride,
-                            offset: std::mem::offset_of!(MyVertex, position),
-                        },
-                        VertexAttrib {
-                            index: 1,
-                            size: 3,
-                            kind: AttributeKind::Float,
-                            normalized,
-                            stride,
-                            offset: std::mem::offset_of!(MyVertex, color),
-                        },
-                    ]
-                }
-            }
-
-            let vertices = vec![
-                MyVertex {
-                    position: [-0.5, -0.5, 0.0],
-                    color: [1.0, 0.4, 0.6],
-                },
-                MyVertex {
-                    position: [0.5, -0.5, 0.0],
-                    color: [0.6, 1.0, 0.4],
-                },
-                MyVertex {
-                    position: [0.5, 0.5, 0.0],
-                    color: [0.1, 0.4, 1.0],
-                },
-                MyVertex {
-                    position: [-0.5, 0.5, 0.0],
-                    color: [0.1, 3.0, 0.4],
-                },
-            ];
-            let v_desc = BufferObjDesc::new(BufferObjKind::Vertex, BufferUsage::StaticDraw);
-
-            let elements = vec![0_u32, 1, 2, 3, 2, 0];
-            let e_desc = BufferObjDesc::new(BufferObjKind::Element, BufferUsage::StaticDraw);
-
-            let triangle = GlMesh::new::<MyVertex>(vertices, v_desc, Primitive::Triangles)
-                .unwrap()
-                .with_element_buffer(elements, e_desc)
-                .unwrap();
-            self.world.register_resourse(Triangle(triangle));
         }
         // add camera
         {

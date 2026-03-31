@@ -147,8 +147,5 @@ impl AddAssign<f32> for Time {
 impl_resource!(TimeDelta);
 impl_newtype!(TimeDelta, f64);
 
-pub struct TriangleProgram(pub GlShaderProgram);
-impl_resource!(TriangleProgram);
-
-pub struct Triangle(pub GlMesh);
-impl_resource!(Triangle);
+pub struct SceneProgram(pub GlShaderProgram);
+impl_resource!(SceneProgram);

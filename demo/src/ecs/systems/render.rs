@@ -1,9 +1,9 @@
-use crate::ecs::resources::{Projection, Time, Triangle, TriangleProgram, View};
-use engine::{ecs::World, query_resource, render::prelude::Renderable};
+use crate::ecs::{components::Model, resources::{Projection, Time, SceneProgram, View}};
+use engine::{ecs::World, query, query_resource, render::prelude::Renderable};
 
 pub fn s_render(world: &mut World) {
-    let (prog, triangle, time, view, proj) =
-        query_resource!(world, TriangleProgram, Triangle, Time, View, Projection);
+    let (prog, time, view, proj) =
+        query_resource!(world, SceneProgram, Time, View, Projection);
 
     unsafe {
         gl::ClearColor(0.0, 0.0, 0.0, 1.0);
@@ -14,5 +14,10 @@ pub fn s_render(world: &mut World) {
     prog.0.uniform_value(*view);
     prog.0.uniform_value(*time);
     prog.0.uniform_value(*proj);
-    triangle.0.draw();
+    
+    for model_opt in query!(world, Model).iter() {
+        if let Some(model) = model_opt {
+            model.draw();
+        }
+    }
 }
