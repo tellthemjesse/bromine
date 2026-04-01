@@ -45,6 +45,12 @@ pub fn s_camera_control(world: &mut World) {
     if keys.contains(&KeyCode::KeyS) {
         direction -= forward;
     }
+    if keys.contains(&KeyCode::Space) {
+        direction += Vec3::Y;
+    }
+    if keys.contains(&KeyCode::ShiftLeft) {
+        direction -= Vec3::Y;
+    }
     if keys.contains(&KeyCode::KeyD) {
         direction += right
     }
@@ -52,7 +58,7 @@ pub fn s_camera_control(world: &mut World) {
         direction -= right;
     }
 
-    let velocity = direction.normalize_or_zero() * 5.0;
+    let velocity = direction.normalize_or_zero() * 4.0;
 
     *position += velocity * dt;
 }

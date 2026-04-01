@@ -1,7 +1,7 @@
 use super::window_event::*;
 use crate::ecs::components::{Camera, Model, Position};
 use crate::ecs::resources::{
-    MouseDelta, PressedKeys, Projection, Time, TimeDelta, SceneProgram, View,
+    MouseDelta, PressedKeys, Projection, SceneProgram, Time, TimeDelta, View,
 };
 use engine::render::prelude::*;
 use engine::{ecs::World, query_resource, window::game::Game};
@@ -16,6 +16,7 @@ use glutin::{
 use glutin_winit::DisplayBuilder;
 use raw_window_handle::HasWindowHandle;
 use std::{collections::HashSet, ffi::CString, num::NonZeroU32, time::Instant};
+use winit::event::MouseScrollDelta;
 use winit::{
     application::ApplicationHandler,
     dpi::LogicalSize,
@@ -26,7 +27,9 @@ use winit::{
 
 pub(super) const WINDOW_WIDTH: u32 = 1600;
 pub(super) const WINDOW_HEIGHT: u32 = 900;
-pub(super) const FOV_Y: f32 = 70.0_f32.to_radians();
+const FOV_MIN: f32 = 9.0_f32.to_radians();
+const FOV_MAX: f32 = 89.0_f32.to_radians();
+pub(super) static mut FOV_Y: f32 = 70.0_f32.to_radians();
 
 pub(super) struct WindowContext {
     pub window_id: WindowId,
@@ -55,7 +58,6 @@ impl ApplicationDemo {
             timer: Instant::now(),
         }
     }
-
     /// Panics if [`WindowContext`] is None
     fn get_window(&self) -> &Window {
         &self.primary_window.as_ref().unwrap().window
@@ -117,7 +119,7 @@ impl Game for ApplicationDemo {
         surface.set_swap_interval(&context, SwapInterval::Wait(NonZeroU32::new(1).unwrap()))?;
 
         window.set_cursor_visible(false);
-        window.set_cursor_grab(winit::window::CursorGrabMode::None)?;
+        window.set_cursor_grab(winit::window::CursorGrabMode::Confined)?;
 
         unsafe {
             gl::Enable(gl::DEPTH_TEST);
@@ -153,8 +155,9 @@ impl Game for ApplicationDemo {
         {
             let (width, height): (u32, u32) = self.get_window().inner_size().into();
             let aspect_ratio = width as f32 / height as f32;
-            let projection_mat =
-                Projection::from(Mat4::perspective_rh_gl(FOV_Y, aspect_ratio, 0.0, 100.0));
+            let projection_mat = unsafe {
+                Projection::from(Mat4::perspective_rh_gl(FOV_Y, aspect_ratio, 0.0, 100.0))
+            };
             self.world.register_resourse(projection_mat);
 
             let view_mat = View::from(Mat4::IDENTITY);
@@ -266,6 +269,22 @@ impl ApplicationHandler for ApplicationDemo {
                 let world = self.world_mut();
                 let mut mouse_delta = query_resource!(world, mut MouseDelta);
                 *mouse_delta += delta;
+            }
+            DeviceEvent::MouseWheel { delta } => {
+                if let MouseScrollDelta::LineDelta(_, vertical) = delta {
+                    let size = self.get_window().inner_size();
+                    let (w, h) = (size.width as f32, size.height as f32);
+
+                    let aspect_ratio = w / h;
+
+                    let world = self.world_mut();
+                    let mut projection_mat = query_resource!(world, mut Projection);
+
+                    *projection_mat = unsafe {
+                        FOV_Y = (FOV_Y + (-vertical) * 0.1).clamp(FOV_MIN, FOV_MAX);
+                        Mat4::perspective_rh_gl(FOV_Y, aspect_ratio, 0.1, 100.0).into()
+                    };
+                }
             }
             _ => (),
         }

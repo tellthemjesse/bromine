@@ -30,7 +30,9 @@ pub fn resized(app: &mut ApplicationDemo, window_id: WindowId, physical_size: Ph
 
         let world = app.world_mut();
         let mut projection_mat = query_resource!(world, mut Projection);
-        *projection_mat = Mat4::perspective_rh_gl(FOV_Y, aspect_ratio, 0.1, 100.0).into();
+        unsafe {
+            *projection_mat = Mat4::perspective_rh_gl(FOV_Y, aspect_ratio, 0.1, 100.0).into();
+        }
 
         unsafe {
             gl::Viewport(
