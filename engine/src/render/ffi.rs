@@ -36,37 +36,34 @@ pub extern "system" fn debug_callback(
 
         let source_str = match source {
             gl::DEBUG_SOURCE_API => "API",
-            gl::DEBUG_SOURCE_WINDOW_SYSTEM => "WINDOW_SYSTEM",
-            gl::DEBUG_SOURCE_SHADER_COMPILER => "SHADER_COMPILER",
-            gl::DEBUG_SOURCE_THIRD_PARTY => "THIRD_PARTY",
-            gl::DEBUG_SOURCE_APPLICATION => "APPLICATION",
-            gl::DEBUG_SOURCE_OTHER => "OTHER",
-            _ => "UNKNOWN",
+            gl::DEBUG_SOURCE_WINDOW_SYSTEM => "window system",
+            gl::DEBUG_SOURCE_SHADER_COMPILER => "shader compiler",
+            gl::DEBUG_SOURCE_THIRD_PARTY => "third party",
+            gl::DEBUG_SOURCE_APPLICATION => "application",
+            gl::DEBUG_SOURCE_OTHER => "other",
+            _ => "unknown",
         };
 
         let type_str = match error_type {
-            gl::DEBUG_TYPE_ERROR => "ERROR",
-            gl::DEBUG_TYPE_DEPRECATED_BEHAVIOR => "DEPRECATED_BEHAVIOR",
-            gl::DEBUG_TYPE_UNDEFINED_BEHAVIOR => "UNDEFINED_BEHAVIOR",
-            gl::DEBUG_TYPE_PORTABILITY => "PORTABILITY",
-            gl::DEBUG_TYPE_PERFORMANCE => "PERFORMANCE",
-            gl::DEBUG_TYPE_MARKER => "MARKER",
-            gl::DEBUG_TYPE_PUSH_GROUP => "PUSH_GROUP",
-            gl::DEBUG_TYPE_POP_GROUP => "POP_GROUP",
-            gl::DEBUG_TYPE_OTHER => "OTHER",
-            _ => "UNKNOWN",
+            gl::DEBUG_TYPE_ERROR => "error",
+            gl::DEBUG_TYPE_DEPRECATED_BEHAVIOR => "deprecated behavior",
+            gl::DEBUG_TYPE_UNDEFINED_BEHAVIOR => "undefined behavior",
+            gl::DEBUG_TYPE_PORTABILITY => "portability",
+            gl::DEBUG_TYPE_PERFORMANCE => "performance",
+            gl::DEBUG_TYPE_MARKER => "marker",
+            gl::DEBUG_TYPE_PUSH_GROUP => "push group",
+            gl::DEBUG_TYPE_POP_GROUP => "pop group",
+            gl::DEBUG_TYPE_OTHER => "other",
+            _ => "unknown",
         };
 
-        let msg = format!(
-            "OpenGL Debug: Source={}, Type={}, ID={}, Message={}",
-            source_str, type_str, id, msg
-        );
+        let message = format!("{type_str} notice from {source_str} [id = {id}]: {msg}");
 
         match severity {
-            gl::DEBUG_SEVERITY_HIGH => tracing::error!(msg),
-            gl::DEBUG_SEVERITY_MEDIUM => tracing::debug!(msg),
-            gl::DEBUG_SEVERITY_LOW => tracing::warn!(msg),
-            gl::DEBUG_SEVERITY_NOTIFICATION => tracing::info!(msg),
+            gl::DEBUG_SEVERITY_HIGH => tracing::error!(message),
+            gl::DEBUG_SEVERITY_MEDIUM => tracing::debug!(message),
+            gl::DEBUG_SEVERITY_LOW => tracing::warn!(message),
+            gl::DEBUG_SEVERITY_NOTIFICATION => tracing::info!(message),
             _ => (),
         };
     }

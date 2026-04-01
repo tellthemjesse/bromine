@@ -35,3 +35,9 @@ pub trait UniformValue<T> {
     fn kind(&self) -> &UniformKind;
     unsafe fn value_ptr(&self) -> *const T;
 }
+
+pub struct Uniform<T> {
+    pub name: String,
+    pub kind: UniformKind,
+    pub value_ptr: *const T,
+}

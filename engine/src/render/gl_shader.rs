@@ -36,35 +36,49 @@ impl GlShaderProgram {
     pub fn desc(&self) -> &ShaderProgramDesc {
         &self.desc
     }
-
-    pub fn uniform_value<T>(&self, uv: impl UniformValue<T>) {
-        if let Some(active_uniform) = self.desc.uniforms.get(uv.name()) {
+    /// Sets uniform value using structured data
+    pub fn uniform_value_s<T>(&self, u: Uniform<T>) {
+        if let Some(active_uniform) = self.desc.uniforms.get(&u.name) {
             let location = active_uniform.location as i32;
             unsafe {
-                let ptr = uv.value_ptr();
-                
-                match uv.kind() {
-                    UniformKind::Float => {
-                        gl::Uniform1fv(location, 1, ptr as _)
-                    }
-                    UniformKind::Vec3 => {
-                        gl::Uniform3fv(location, 1, ptr as _)
-                    },
+                let ptr = u.value_ptr;
+
+                match u.kind {
+                    UniformKind::Float => gl::Uniform1fv(location, 1, ptr as _),
+                    UniformKind::Vec3 => gl::Uniform3fv(location, 1, ptr as _),
                     UniformKind::Mat4 => {
                         gl::UniformMatrix4fv(location, 1, gl::FALSE, ptr as _);
-                    },
+                    }
                     UniformKind::Sampler2D => todo!(),
                 }
             }
         }
     }
+    /// Sets uniform value using trait implemenation for `T`
+    pub fn uniform_value_t<T>(&self, uv: impl UniformValue<T>) {
+        if let Some(active_uniform) = self.desc.uniforms.get(uv.name()) {
+            let location = active_uniform.location as i32;
+            unsafe {
+                let ptr = uv.value_ptr();
 
+                match uv.kind() {
+                    UniformKind::Float => gl::Uniform1fv(location, 1, ptr as _),
+                    UniformKind::Vec3 => gl::Uniform3fv(location, 1, ptr as _),
+                    UniformKind::Mat4 => {
+                        gl::UniformMatrix4fv(location, 1, gl::FALSE, ptr as _);
+                    }
+                    UniformKind::Sampler2D => todo!(),
+                }
+            }
+        }
+    }
+    /// Binds the shader program
     pub fn bind(&self) {
         unsafe {
             gl::UseProgram(self.id);
         }
     }
-
+    /// Unbinds the shader program
     pub fn unbind(&self) {
         unsafe {
             gl::UseProgram(0);
