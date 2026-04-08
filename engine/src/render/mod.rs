@@ -10,3 +10,4 @@ pub mod shader;
 pub mod uniform;
 pub mod vertex;
 pub use scene::*;
+pub mod phong_lightning;
