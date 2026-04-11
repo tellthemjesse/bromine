@@ -1,3 +1,5 @@
+//! Declares [`Element`] trait. Provides [`Primitive`] enum for drawing
+
 use anyhow::anyhow;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

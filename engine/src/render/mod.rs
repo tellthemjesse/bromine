@@ -1,6 +1,6 @@
 pub mod buffer_object;
+pub mod debug_callback;
 pub mod element;
-pub mod ffi;
 pub mod gl_buffer_object;
 pub mod gl_shader;
 pub mod prelude;

@@ -1,6 +1,8 @@
+//! Public re-exports 
+
 pub use super::buffer_object::*;
+pub use super::debug_callback::*;
 pub use super::element::*;
-pub use super::ffi::*;
 pub use super::gl_buffer_object::*;
 pub use super::gl_shader::*;
 pub use super::phong_lightning::*;

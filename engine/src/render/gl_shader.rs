@@ -1,6 +1,12 @@
-use super::{ffi::c_string, shader::*, uniform::*};
+//! Low-level implementation for [`shaders`](super::shader) and [`uniform`](super::uniform) modules
+
+use super::{shader::*, uniform::*};
 use anyhow::anyhow;
-use std::{collections::HashMap, ffi::CStr, ptr};
+use std::{
+    collections::HashMap,
+    ffi::{CStr, CString},
+    ptr,
+};
 
 #[derive(Debug)]
 /// Represents OpenGL shader
@@ -24,7 +30,7 @@ impl GlShader {
 /// Represents OpenGL shader program
 pub struct GlShaderProgram {
     id: u32,
-    pub desc: ShaderProgramDesc,
+    desc: ShaderProgramDesc,
 }
 
 impl GlShaderProgram {
@@ -36,7 +42,7 @@ impl GlShaderProgram {
     pub fn desc(&self) -> &ShaderProgramDesc {
         &self.desc
     }
-    /// Sets uniform value using structured data
+    /// Sets uniform value using data record
     pub fn uniform_value_s<T>(&self, u: Uniform<T>) {
         if let Some(active_uniform) = self.desc.uniforms.get(&u.name) {
             let location = active_uniform.location as i32;
@@ -86,10 +92,10 @@ impl GlShaderProgram {
     }
 }
 
-/// Compiles a shader
+/// Compiles shader
 pub fn compile_shader(source: impl Into<Vec<u8>>, desc: ShaderDesc) -> anyhow::Result<GlShader> {
     let shader: u32;
-    let src = c_string(source);
+    let src = CString::new(source)?;
     let mut status = gl::FALSE as i32;
 
     unsafe {
@@ -123,7 +129,7 @@ pub fn compile_shader(source: impl Into<Vec<u8>>, desc: ShaderDesc) -> anyhow::R
     Ok(GlShader { id: shader, desc })
 }
 
-/// Links a shader program
+/// Links shader program
 ///
 /// # Note
 ///
@@ -181,10 +187,8 @@ pub fn link_program(shaders: Vec<GlShader>) -> anyhow::Result<GlShaderProgram> {
 
 /// Returns a HashMap over active uniforms
 ///
-/// # Dev Note
-///
-/// Uniform size is unused
-fn get_uniforms(program: u32) -> anyhow::Result<HashMap<String, UniformDesc>> {
+/// Note that uniform size is unused
+pub fn get_uniforms(program: u32) -> anyhow::Result<HashMap<String, UniformDesc>> {
     let mut active_uniforms = 0;
     let mut buf_size = 0;
 
@@ -242,11 +246,8 @@ fn get_uniforms(program: u32) -> anyhow::Result<HashMap<String, UniformDesc>> {
     Ok(uniforms)
 }
 
-/// Enables the shader program
-pub fn use_program(program: &GlShaderProgram) {
-    unsafe {
-        gl::UseProgram(program.id);
-    }
+pub fn get_uniform_blocks(_program: u32) -> anyhow::Result<HashMap<String, UniformBlockDesc>> {
+    todo!()
 }
 
 #[cfg(test)]

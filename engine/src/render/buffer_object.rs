@@ -1,3 +1,5 @@
+//! High-level representation of buffer objects
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[non_exhaustive]
 #[repr(u32)]

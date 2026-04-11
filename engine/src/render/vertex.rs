@@ -1,9 +1,11 @@
+//! Declares [`Vertex`] trait. Provides [`VertexAttrib`] struct
+//!
 //! [OpenGL refernce page](https://registry.khronos.org/OpenGL-Refpages/gl4/html/glVertexAttribPointer.xhtml)
 
 #[derive(Debug, Clone, Copy)]
 #[non_exhaustive]
 #[repr(u32)]
-/// Represents data types, accepted by [`gl::VertexAttribPointer`]
+/// Represents data types, accepted by [`gl::VertexAttribPointer()`]
 pub enum AttributeKind {
     I8 = gl::BYTE,
     U8 = gl::UNSIGNED_BYTE,
@@ -28,6 +30,8 @@ pub struct VertexAttrib {
     pub offset: usize,
 }
 
+/// This trait is required for submitting data to the vertex buffer
 pub trait Vertex {
+    /// A list of vertex attributes
     fn attributes() -> impl IntoIterator<Item = VertexAttrib>;
 }

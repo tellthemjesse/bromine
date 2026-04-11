@@ -1,3 +1,5 @@
+//! Scene geometry that implements [`Renderable`](super::renderable::Renderable) trait
+
 pub mod gl_mesh;
 pub mod gl_model;
 pub mod gltf_loader;

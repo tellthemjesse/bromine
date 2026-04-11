@@ -1,3 +1,5 @@
+//! Low-level implementation for [`buffer_object`](super::buffer_object) module
+
 use super::buffer_object::*;
 use super::vertex::Vertex;
 use anyhow::anyhow;

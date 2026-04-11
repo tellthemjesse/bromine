@@ -1,16 +1,9 @@
-use std::ffi::CString;
-#[cfg(feature = "debug")]
+#![cfg(feature = "debug")]
+//! Debug callback implementation. 
+//! Available on crate feature `debug` 
+
 use std::ffi::{CStr, c_void};
 
-#[inline(always)]
-pub fn c_string<T>(s: T) -> CString
-where
-    T: Into<Vec<u8>>,
-{
-    CString::new(s).unwrap()
-}
-
-#[cfg(feature = "debug")]
 pub type GlDebugCallback = extern "system" fn(
     source: u32,
     error_type: u32,
@@ -21,7 +14,6 @@ pub type GlDebugCallback = extern "system" fn(
     user_param: *mut c_void,
 );
 
-#[cfg(feature = "debug")]
 pub extern "system" fn debug_callback(
     source: u32,
     error_type: u32,

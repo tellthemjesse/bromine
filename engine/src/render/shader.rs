@@ -1,15 +1,19 @@
-use std::collections::HashMap;
+//! High-level representation of shaders
+
 use super::uniform::UniformDesc;
+use std::collections::HashMap;
 
 #[derive(Debug, Clone, Copy)]
 #[non_exhaustive]
 #[repr(u32)]
+/// Represents a shader stage
 pub enum ShaderStage {
     Vertex = gl::VERTEX_SHADER,
     Fragment = gl::FRAGMENT_SHADER,
 }
 
 #[derive(Debug, Clone)]
+/// Shader descriptor
 pub struct ShaderDesc {
     pub debug_name: String,
     pub stage: ShaderStage,
@@ -20,6 +24,20 @@ impl ShaderDesc {
         Self {
             debug_name: name.into(),
             stage,
+        }
+    }
+    /// Creates new shader descriptor with stage set to [`ShaderStage::Vertex`]
+    pub fn vert(name: impl Into<String>) -> Self {
+        Self {
+            debug_name: name.into(),
+            stage: ShaderStage::Vertex,
+        }
+    }
+    /// Creates new shader descriptor with stage set to [`ShaderStage::Fragment`]
+    pub fn frag(name: impl Into<String>) -> Self {
+        Self {
+            debug_name: name.into(),
+            stage: ShaderStage::Fragment,
         }
     }
 }
