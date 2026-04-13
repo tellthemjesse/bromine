@@ -1,7 +1,11 @@
 //! High-level representation of shaders
 
-use super::uniform::UniformDesc;
+use super::uniform::UniformVarDesc;
+use crate::render::prelude::UniformBlockDesc;
 use std::collections::HashMap;
+
+pub type UniformVariablesMap = HashMap<String, UniformVarDesc>;
+pub type UniformBlocksMap = HashMap<String, UniformBlockDesc>;
 
 #[derive(Debug, Clone, Copy)]
 #[non_exhaustive]
@@ -45,11 +49,20 @@ impl ShaderDesc {
 #[derive(Debug, Clone)]
 pub struct ShaderProgramDesc {
     pub shaders: Vec<ShaderDesc>,
-    pub uniforms: HashMap<String, UniformDesc>,
+    pub uniforms: UniformVariablesMap,
+    pub blocks: UniformBlocksMap,
 }
 
 impl ShaderProgramDesc {
-    pub fn new(shaders: Vec<ShaderDesc>, uniforms: HashMap<String, UniformDesc>) -> Self {
-        Self { shaders, uniforms }
+    pub fn new(
+        shaders: Vec<ShaderDesc>,
+        uniforms: UniformVariablesMap,
+        blocks: UniformBlocksMap,
+    ) -> Self {
+        Self {
+            shaders,
+            uniforms,
+            blocks,
+        }
     }
 }
