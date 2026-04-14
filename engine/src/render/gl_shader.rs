@@ -206,6 +206,7 @@ fn get_uniform_variables(program: c_uint) -> anyhow::Result<UniformVariableList>
         .collect()
 }
 
+/// Resolves uniform variable by its index
 fn get_uniform_var(
     program: c_uint,
     index: c_uint,
@@ -274,6 +275,7 @@ fn map_to_uniforms(var_list: &UniformVariableList) -> UniformVariablesMap {
         .collect()
 }
 
+/// Returns a list over active uniform blocks
 fn get_uniform_blocks(program: c_uint) -> anyhow::Result<Vec<UniformBlockMeta>> {
     let mut active_blocks = 0;
     // length of the longest uniform block name including null terminator
@@ -293,6 +295,7 @@ fn get_uniform_blocks(program: c_uint) -> anyhow::Result<Vec<UniformBlockMeta>> 
         .collect()
 }
 
+/// Resolves uniform block by its index
 fn get_uniform_block(
     program: c_uint,
     index: c_uint,
@@ -331,6 +334,7 @@ fn get_uniform_block(
     })
 }
 
+/// Maps a list of uniform variables and blocks to HashMap
 fn map_to_uniform_blocks(
     var_list: &UniformVariableList,
     block_list: &Vec<UniformBlockMeta>,
@@ -400,16 +404,30 @@ mod tests {
     ";
 
     #[test]
-    fn test_shader_operations() {
+    fn test_program_linkage() {
         let display = gl_headless::build_display();
         display.load_gl();
 
-        let v_desc = ShaderDesc::vert("v_test");
-        let v_shader = compile_shader(VERTEX_SHADER, v_desc).unwrap();
+        let vs = compile_shader(VERTEX_SHADER, ShaderDesc::vert("v_test"));
+        let fs = compile_shader(FRAGMENT_SHADER, ShaderDesc::frag("f_test"));
 
-        let f_desc = ShaderDesc::frag("f_test");
-        let f_shader = compile_shader(FRAGMENT_SHADER, f_desc).unwrap();
+        assert!(
+            vs.is_ok(),
+            "couldn't compile vertex shader: {}",
+            vs.unwrap_err()
+        );
+        assert!(
+            fs.is_ok(),
+            "couldn't compile fragment shader: {}",
+            fs.unwrap_err()
+        );
 
-        let _ = link_program(vec![v_shader, f_shader]).unwrap();
+        let program = link_program(vec![vs.unwrap(), fs.unwrap()]);
+
+        assert!(
+            program.is_ok(),
+            "couldn't link program: {}",
+            program.unwrap_err()
+        );
     }
 }

@@ -5,7 +5,7 @@
 #[derive(Debug, Clone, Copy)]
 #[non_exhaustive]
 #[repr(u32)]
-/// Represents data types, accepted by [`gl::VertexAttribPointer()`]
+/// Data types, accepted by [`gl::VertexAttribPointer()`]
 pub enum AttributeKind {
     I8 = gl::BYTE,
     U8 = gl::UNSIGNED_BYTE,
@@ -20,11 +20,12 @@ pub enum AttributeKind {
 #[derive(Debug, Clone, Copy)]
 pub struct VertexAttrib {
     pub index: u32,
-    /// number of components per attribute
+    /// Number of components per attribute
     pub size: usize,
     pub kind: AttributeKind,
+    /// False for floating point types
     pub normalized: bool,
-    /// stride is typically [`std::mem::size_of`] `T`
+    /// Stride is typically [`std::mem::size_of`] `T`
     pub stride: usize,
     /// [`std::mem::offset_of`] the field inside `T`
     pub offset: usize,

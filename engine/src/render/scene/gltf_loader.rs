@@ -96,16 +96,14 @@ mod tests {
 
     #[test]
     fn test_model() {
-        let mut tfn = gl_headless::GlHeadless::new(|| {
-            let path = format!(
-                "{}/resources/monkey/scene.gltf",
-                std::env!("CARGO_MANIFEST_DIR")
-            );
+        let display = gl_headless::build_display();
+        display.load_gl();
+        
+        let path = format!(
+            "{}/resources/monkey/scene.gltf",
+            std::env!("CARGO_MANIFEST_DIR")
+        );
 
-            println!("{path}");
-
-            let _models = GlftFile::get_models(path);
-        });
-        tfn.run_once().unwrap();
+        let _models = GlftFile::get_models(path);
     }
 }

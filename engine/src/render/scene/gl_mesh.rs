@@ -159,50 +159,50 @@ impl Renderable for GlMesh {
 
 #[cfg(test)]
 mod tests {
-    use crate::render::{buffer_object::*, vertex::*};
     use super::*;
+    use crate::render::{buffer_object::*, vertex::*};
 
     #[test]
     fn test_mesh() {
-        let mut tfn = gl_headless::GlHeadless::new(|| {
-            struct MyVertex {
-                position: [f32; 3],
+        let display = gl_headless::build_display();
+        display.load_gl();
+        
+        struct MyVertex {
+            position: [f32; 3],
+        }
+
+        impl Vertex for MyVertex {
+            fn attributes() -> impl IntoIterator<Item = VertexAttrib> {
+                [VertexAttrib {
+                    index: 0,
+                    size: 3,
+                    kind: AttributeKind::Float,
+                    normalized: true,
+                    stride: std::mem::size_of::<MyVertex>(),
+                    offset: std::mem::offset_of!(MyVertex, position),
+                }]
             }
+        }
 
-            impl Vertex for MyVertex {
-                fn attributes() -> impl IntoIterator<Item = VertexAttrib> {
-                    [VertexAttrib {
-                        index: 0,
-                        size: 3,
-                        kind: AttributeKind::Float,
-                        normalized: true,
-                        stride: std::mem::size_of::<MyVertex>(),
-                        offset: std::mem::offset_of!(MyVertex, position),
-                    }]
-                }
-            }
+        let vertices = vec![
+            MyVertex {
+                position: [0.54, 0.21, -0.43],
+            },
+            MyVertex {
+                position: [0.54, 0.66, -0.43],
+            },
+            MyVertex {
+                position: [0.33, -0.12, 0.94],
+            },
+        ];
+        let v_desc = BufferObjDesc::new(BufferObjKind::Vertex, BufferUsage::StaticDraw);
 
-            let vertices = vec![
-                MyVertex {
-                    position: [0.54, 0.21, -0.43],
-                },
-                MyVertex {
-                    position: [0.54, 0.66, -0.43],
-                },
-                MyVertex {
-                    position: [0.33, -0.12, 0.94],
-                },
-            ];
-            let v_desc = BufferObjDesc::new(BufferObjKind::Vertex, BufferUsage::StaticDraw);
+        let elements = vec![0, 2, 1_u32];
+        let e_desc = BufferObjDesc::new(BufferObjKind::Element, BufferUsage::StaticDraw);
 
-            let elements = vec![0, 2, 1_u32];
-            let e_desc = BufferObjDesc::new(BufferObjKind::Element, BufferUsage::StaticDraw);
-
-            let _ = GlMesh::new::<MyVertex>(vertices, v_desc, Primitive::Triangles)
-                .unwrap()
-                .with_element_buffer(elements, e_desc)
-                .unwrap();
-        });
-        let _ = tfn.run_once();
+        let _ = GlMesh::new::<MyVertex>(vertices, v_desc, Primitive::Triangles)
+            .unwrap()
+            .with_element_buffer(elements, e_desc)
+            .unwrap();
     }
 }

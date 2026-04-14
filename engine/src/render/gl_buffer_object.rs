@@ -2,7 +2,7 @@
 
 use super::buffer_object::*;
 use super::vertex::Vertex;
-use anyhow::anyhow;
+use anyhow::bail;
 use std::ffi::c_void;
 
 #[derive(Debug)]
@@ -58,9 +58,9 @@ impl GlVertexArray {
                 if err != gl::NO_ERROR {
                     gl::DeleteVertexArrays(1, &mut self.id.clone());
                     gl::BindVertexArray(0);
-                    return Err(anyhow!(
+                    bail!(
                         "failed to make an attribute pointer, err code: {err} ({err:#X})"
-                    ));
+                    );
                 }
             }
         }
@@ -107,7 +107,7 @@ impl GlBufferObject {
     /// The caller must ensure that this buffer object is active
     pub unsafe fn write<T>(&mut self, data: Vec<T>) -> anyhow::Result<()> {
         if data.is_empty() {
-            return Err(anyhow!("cannot submit an empty buffer to the GPU"));
+            bail!("cannot submit an empty buffer to the GPU");
         }
 
         self.count = data.len();
@@ -124,7 +124,7 @@ impl GlBufferObject {
             if err != gl::NO_ERROR {
                 gl::DeleteBuffers(1, &self.id);
                 gl::BindBuffer(self.desc.kind as u32, 0);
-                return Err(anyhow!("failed to buffer data, err code: {err} ({err:#X})"));
+                bail!("failed to buffer data, err code: {err} ({err:#X})");
             }
         }
 
@@ -155,43 +155,60 @@ mod tests {
     use super::super::vertex::{AttributeKind, VertexAttrib};
     use super::*;
 
+    #[repr(transparent)]
+    struct Position(pub [f32; 3]);
+
+    impl Vertex for Position {
+        fn attributes() -> impl IntoIterator<Item = VertexAttrib> {
+            [VertexAttrib {
+                index: 0,
+                size: 3,
+                kind: AttributeKind::Float,
+                normalized: false,
+                stride: std::mem::size_of::<Position>(),
+                offset: 0,
+            }]
+        }
+    }
+    
     #[test]
-    fn test_buffer_operations() {
-        let mut tfn = gl_headless::GlHeadless::new(|| {
-            struct MyVertex {
-                position: [f32; 3],
-            }
+    fn test_vertex_buf() {
+        let display = gl_headless::build_display();
+        display.load_gl();
 
-            impl Vertex for MyVertex {
-                fn attributes() -> impl IntoIterator<Item = VertexAttrib> {
-                    [VertexAttrib {
-                        index: 0,
-                        size: 3,
-                        kind: AttributeKind::Float,
-                        normalized: false,
-                        stride: std::mem::size_of::<MyVertex>(),
-                        offset: std::mem::offset_of!(MyVertex, position),
-                    }]
-                }
-            }
+        let desc = BufferObjDesc::new(BufferObjKind::Vertex, BufferUsage::StaticDraw);
 
-            let v = MyVertex {
-                position: [1.0, 0.0, 1.0],
-            };
-            let desc = BufferObjDesc::new(BufferObjKind::Vertex, BufferUsage::StaticDraw);
+        let vao = GlVertexArray::new();
+        let mut vbo = GlBufferObject::new(desc);
 
-            let vao = GlVertexArray::new();
-            let mut vbo = GlBufferObject::new(desc);
+        vao.bind();
+        vbo.bind();
+        
+        unsafe {
+            let vbo_write = vbo.write(vec![Position([1.0, 0.0, 1.0])]);
+            assert!(vbo_write.is_ok(), "{}", vbo_write.unwrap_err());
+            let vao_write = vao.write::<Position>();
+            assert!(vao_write.is_ok(), "{}", vao_write.unwrap_err());
+        }
 
-            vao.bind();
-            unsafe {
-                vbo.write(vec![v]).unwrap();
-                vao.write::<MyVertex>().unwrap();
-            }
-
-            vao.unbind();
-            vbo.unbind();
-        });
-        let _ = tfn.run_once();
+        vao.unbind();
+        vbo.unbind();        
+    }
+    
+    #[test]
+    fn test_empty_buf() {
+        let display = gl_headless::build_display();
+        display.load_gl();
+        
+        let desc = BufferObjDesc::new(BufferObjKind::Vertex, BufferUsage::StaticDraw);
+  
+        let mut vbo = GlBufferObject::new(desc);
+        vbo.bind();
+        
+        let vbo_write = unsafe {
+            vbo.write(Vec::<Position>::new())
+        };
+        
+        assert!(vbo_write.is_err())
     }
 }
