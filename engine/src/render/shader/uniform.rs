@@ -1,7 +1,6 @@
 //! High-level uniform representation
 
 use anyhow::bail;
-use std::collections::HashMap;
 
 #[derive(Debug, Clone, Copy)]
 #[non_exhaustive]
@@ -28,35 +27,32 @@ impl TryFrom<u32> for GlslDatatype {
     }
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone)]
 /// Uniform variable descriptor
-///
-/// Name property is not a part of this structure because [`GlShaderProgram`](super::gl_shader::GlShaderProgram)
-/// owns a `HashMap<K, V>` over all active uniforms (`K` = *Name*, `V` = *Descriptor*)
+/// 
+/// todo: include size (implementing arrays)
 pub struct UniformVarDesc {
+    pub name: String,
     pub datatype: GlslDatatype,
     pub location: u32,
 }
 
 impl UniformVarDesc {
-    pub fn new(datatype: GlslDatatype, location: u32) -> Self {
-        Self { datatype, location }
+    pub fn new(name: String, datatype: GlslDatatype, location: u32) -> Self {
+        Self { name, datatype, location }
     }
 }
 
 #[derive(Debug, Clone)]
 /// Uniform block descriptor
-///
-/// Name property is not a part of this structure because [`GlShaderProgram`](super::gl_shader::GlShaderProgram)
-/// owns a `HashMap<K, V>` over all active uniform blocks (`K` = *Name*, `V` = *Descriptor*)
 pub struct UniformBlockDesc {
+    pub name: String,
     pub binding: u32,
-    pub fields: HashMap<String, GlslDatatype>,
 }
 
 impl UniformBlockDesc {
-    pub fn new(binding: u32, fields: HashMap<String, GlslDatatype>) -> Self {
-        Self { binding, fields } 
+    pub fn new(name: String, binding: u32) -> Self {
+        Self { name, binding } 
     }
 }
 
@@ -86,27 +82,16 @@ pub(crate) struct UniformBlockMeta {
     pub index: u32,
 }
 
-/// Represents uniform value with underlying data type `T`
+/// Represents uniform value with data type `T` that matches specified [`GlslDatatype`].
 ///
-/// Implement this trait when it makes sense for the type to be directly used as uniform
-///
-/// Use [`GlShaderProgram::uniform_value_t()`](crate::render::prelude::GlShaderProgram::uniform_value_t) to set the value
-pub trait UniformValue<T> {
-    fn datatype(&self) -> GlslDatatype;
-    fn name(&self) -> &str;
-    fn value_ptr(&self) -> *const T;
-}
-
-/// Represents uniform value with underlying data type `T`
-///
-/// Use [`GlShaderProgram::uniform_value_s()`](crate::render::prelude::GlShaderProgram::uniform_value_s) to set the value
-pub struct UniformVariable<T> {
+/// Use [`GlProgram::set_uniform()`](crate::render::prelude::GlProgram::set_uniform()) to set the value
+pub struct UniformValue<T> {
     name: String,
     datatype: GlslDatatype,
     value_ptr: *const T,
 }
 
-impl<T> UniformVariable<T> {
+impl<T> UniformValue<T> {
     pub fn new(name: String, datatype: GlslDatatype, value_ptr: *const T) -> Self {
         Self {
             name,

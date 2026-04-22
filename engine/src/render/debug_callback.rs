@@ -14,7 +14,7 @@ pub type GlDebugCallback = extern "system" fn(
     user_param: *mut c_void,
 );
 
-pub extern "system" fn debug_callback(
+pub unsafe extern "system" fn debug_callback(
     source: u32,
     error_type: u32,
     id: u32,
