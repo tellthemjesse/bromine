@@ -496,10 +496,10 @@ dependencies = [
 name = "gl_headless"
 version = "0.1.0"
 dependencies = [
- "anyhow",
  "gl",
  "glutin",
  "glutin-winit",
+ "raw-window-handle",
  "winit",
 ]
 
