@@ -28,6 +28,12 @@ macro_rules! impl_newtype {
                 Self(value)
             }
         }
+
+        impl $type {
+            pub fn value(&self) -> &$target {
+                &self.0
+            }
+        }
     };
 }
 
@@ -35,40 +41,12 @@ macro_rules! impl_newtype {
 /// World projection matrix
 pub struct Projection(Mat4);
 
-impl UniformValue<f32> for Projection {
-    fn name(&self) -> &str {
-        "u_Proj"
-    }
-
-    fn kind(&self) -> &UniformKind {
-        &UniformKind::Mat4
-    }
-
-    unsafe fn value_ptr(&self) -> *const f32 {
-        self.0.as_ref().as_ptr()
-    }
-}
-
 impl_resource!(Projection);
 impl_newtype!(Projection, Mat4);
 
 #[derive(Debug, Clone, Copy)]
 /// Camera view matrix
 pub struct View(Mat4);
-
-impl UniformValue<f32> for View {
-    fn name(&self) -> &str {
-        "u_View"
-    }
-
-    fn kind(&self) -> &UniformKind {
-        &UniformKind::Mat4
-    }
-
-    unsafe fn value_ptr(&self) -> *const f32 {
-        self.0.as_ref().as_ptr()
-    }
-}
 
 impl_resource!(View);
 impl_newtype!(View, Mat4);
@@ -126,18 +104,6 @@ pub struct Time(f32);
 impl_resource!(Time);
 impl_newtype!(Time, f32);
 
-impl UniformValue<f32> for Time {
-    fn name(&self) -> &str {
-        "u_Time"
-    }
-    fn kind(&self) -> &UniformKind {
-        &UniformKind::Float
-    }
-    unsafe fn value_ptr(&self) -> *const f32 {
-        &self.0
-    }
-}
-
 impl AddAssign<f32> for Time {
     fn add_assign(&mut self, rhs: f32) {
         self.0 += rhs;
@@ -147,5 +113,5 @@ impl AddAssign<f32> for Time {
 impl_resource!(TimeDelta);
 impl_newtype!(TimeDelta, f64);
 
-pub struct SceneProgram(pub GlShaderProgram);
+pub struct SceneProgram(pub GlProgram);
 impl_resource!(SceneProgram);

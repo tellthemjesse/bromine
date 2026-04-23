@@ -81,14 +81,14 @@ pub fn keyboard_input(app: &mut ApplicationDemo, ev_loop: &ActiveEventLoop, even
 pub fn redraw_requested(app: &mut ApplicationDemo, window_id: WindowId) {
     let (window, surface, context) = app.primary_window.as_ref().unwrap().values();
 
-    if !context.is_current() {
-        if let Err(e) = context.make_current(surface) {
-            tracing::error!("failed to make context current for redraw: {e}");
-            return;
-        }
+    if !context.is_current()
+        && let Err(e) = context.make_current(surface)
+    {
+        tracing::error!("failed to make context current for redraw: {e}");
+        return;
     }
 
-    let ref mut world = app.world;
+    let world = &mut app.world;
 
     s_camera_control(world);
     s_camera_view(world);

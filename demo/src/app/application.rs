@@ -179,16 +179,12 @@ impl Game for ApplicationDemo {
             let vertex_shader: &str = include_str!("../shaders/Scene.vert");
             let fragment_shader: &str = include_str!("../shaders/Scene.frag");
 
-            let v_desc = ShaderDesc::new("v_test", ShaderStage::Vertex);
-            let v_shader = compile_shader(vertex_shader, v_desc).unwrap();
+            let v_shader = GlShader::compile(vertex_shader, ShaderDesc::vert("v_test")).unwrap();
+            let f_shader = GlShader::compile(fragment_shader, ShaderDesc::frag("f_test")).unwrap();
 
-            let f_desc = ShaderDesc::new("f_test", ShaderStage::Fragment);
-            let f_shader = compile_shader(fragment_shader, f_desc).unwrap();
+            let program = GlProgram::link(vec![v_shader, f_shader]).unwrap();
 
-            let program = link_program(vec![v_shader, f_shader]);
-
-            let prog = program.unwrap();
-            self.world.register_resourse(SceneProgram(prog));
+            self.world.register_resourse(SceneProgram(program));
         }
         // add models mesh
         {
@@ -270,21 +266,21 @@ impl ApplicationHandler for ApplicationDemo {
                 let mut mouse_delta = query_resource!(world, mut MouseDelta);
                 *mouse_delta += delta;
             }
-            DeviceEvent::MouseWheel { delta } => {
-                if let MouseScrollDelta::LineDelta(_, vertical) = delta {
-                    let size = self.get_window().inner_size();
-                    let (w, h) = (size.width as f32, size.height as f32);
+            DeviceEvent::MouseWheel {
+                delta: MouseScrollDelta::LineDelta(_, vertical),
+            } => {
+                let size = self.get_window().inner_size();
+                let (w, h) = (size.width as f32, size.height as f32);
 
-                    let aspect_ratio = w / h;
+                let aspect_ratio = w / h;
 
-                    let world = self.world_mut();
-                    let mut projection_mat = query_resource!(world, mut Projection);
+                let world = self.world_mut();
+                let mut projection_mat = query_resource!(world, mut Projection);
 
-                    *projection_mat = unsafe {
-                        FOV_Y = (FOV_Y + (-vertical) * 0.1).clamp(FOV_MIN, FOV_MAX);
-                        Mat4::perspective_rh_gl(FOV_Y, aspect_ratio, 0.1, 100.0).into()
-                    };
-                }
+                *projection_mat = unsafe {
+                    FOV_Y = (FOV_Y + (-vertical) * 0.1).clamp(FOV_MIN, FOV_MAX);
+                    Mat4::perspective_rh_gl(FOV_Y, aspect_ratio, 0.1, 100.0).into()
+                };
             }
             _ => (),
         }

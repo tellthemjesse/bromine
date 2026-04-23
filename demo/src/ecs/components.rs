@@ -16,7 +16,7 @@ pub struct Camera {
 impl Default for Camera {
     fn default() -> Self {
         Self {
-            yaw: -90.0_f32.to_radians(),
+            yaw: 0.0,
             pitch: 0.0,
             roll: 0.0,
         }
@@ -24,8 +24,22 @@ impl Default for Camera {
 }
 
 impl Camera {
-    pub fn angles(&self) -> (f32, f32, f32) {
-        (self.yaw, self.pitch, self.roll)
+    /// Returns normalized forward vector for this camera
+    pub fn forward(&self) -> Vec3 {
+        Vec3::new(
+            self.yaw.cos() * self.pitch.cos(),
+            self.pitch.sin(),
+            self.yaw.sin() * self.pitch.cos(),
+        )
+        .normalize()
+    }
+    /// Returns normalized right vector for this camera
+    pub fn right(&self) -> Vec3 {
+        self.forward().cross(Vec3::Y).normalize()
+    }
+    /// Returns normalized up vector for this camera
+    pub fn up(&self) -> Vec3 {
+        self.right().cross(self.forward()).normalize()
     }
 }
 

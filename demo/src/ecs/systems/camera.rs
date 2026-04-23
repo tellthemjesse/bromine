@@ -25,19 +25,14 @@ pub fn s_camera_control(world: &mut World) {
         camera.yaw %= TAU;
     }
 
-    let (yaw, pitch, _roll) = camera.angles();
     let position = query.1[index].as_mut().unwrap();
     let keys = query_resource!(world, PressedKeys);
 
     let mut direction = Vec3::ZERO;
 
-    let forward = Vec3::new(
-        yaw.cos() * pitch.cos(),
-        pitch.sin(),
-        yaw.sin() * pitch.cos(),
-    )
-    .normalize();
-    let right = forward.cross(Vec3::Y).normalize();
+    let forward = camera.forward();
+    let right = camera.right();
+    let up = camera.up();
 
     if keys.contains(&KeyCode::KeyW) {
         direction += forward;
@@ -46,10 +41,10 @@ pub fn s_camera_control(world: &mut World) {
         direction -= forward;
     }
     if keys.contains(&KeyCode::Space) {
-        direction += Vec3::Y;
+        direction += up;
     }
     if keys.contains(&KeyCode::ShiftLeft) {
-        direction -= Vec3::Y;
+        direction -= up;
     }
     if keys.contains(&KeyCode::KeyD) {
         direction += right
@@ -72,17 +67,8 @@ pub fn s_camera_view(world: &mut World) {
     let camera = query.0[index].as_ref().unwrap();
     let position = query.1[index].as_ref().unwrap().xyz();
 
-    let yaw = camera.yaw;
-    let pitch = camera.pitch;
-
-    let forward = Vec3::new(
-        yaw.cos() * pitch.cos(),
-        pitch.sin(),
-        yaw.sin() * pitch.cos(),
-    )
-    .normalize();
-    let right = forward.cross(Vec3::Y).normalize();
-    let up = right.cross(forward).normalize();
+    let forward = camera.forward();
+    let up = camera.up();
     let target = position + forward;
 
     *view = Mat4::look_at_rh(position, target, up).into();
