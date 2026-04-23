@@ -98,7 +98,7 @@ mod tests {
     fn test_model() {
         let display = gl_headless::build_display();
         display.load_gl();
-        
+
         let path = format!(
             "{}/resources/monkey/scene.gltf",
             std::env!("CARGO_MANIFEST_DIR")

@@ -1,6 +1,6 @@
 #![cfg(feature = "debug")]
-//! Debug callback implementation. 
-//! Available on crate feature `debug` 
+//! Debug callback implementation.
+//! Available on crate feature `debug`
 
 use std::ffi::{CStr, c_void};
 
@@ -14,7 +14,8 @@ pub type GlDebugCallback = extern "system" fn(
     user_param: *mut c_void,
 );
 
-pub unsafe extern "system" fn debug_callback(
+#[allow(clippy::not_unsafe_ptr_arg_deref)]
+pub extern "system" fn debug_callback(
     source: u32,
     error_type: u32,
     id: u32,

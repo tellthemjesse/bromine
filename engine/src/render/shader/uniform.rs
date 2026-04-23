@@ -29,7 +29,7 @@ impl TryFrom<u32> for GlslDatatype {
 
 #[derive(Debug, Clone)]
 /// Uniform variable descriptor
-/// 
+///
 /// todo: include size (implementing arrays)
 pub struct UniformVarDesc {
     pub name: String,
@@ -39,7 +39,11 @@ pub struct UniformVarDesc {
 
 impl UniformVarDesc {
     pub fn new(name: String, datatype: GlslDatatype, location: u32) -> Self {
-        Self { name, datatype, location }
+        Self {
+            name,
+            datatype,
+            location,
+        }
     }
 }
 
@@ -52,13 +56,13 @@ pub struct UniformBlockDesc {
 
 impl UniformBlockDesc {
     pub fn new(name: String, binding: u32) -> Self {
-        Self { name, binding } 
+        Self { name, binding }
     }
 }
 
 #[derive(Debug, Clone)]
 /// Type of a uniform variable within shader program
-/// 
+///
 /// todo: atomics
 pub(crate) enum UniformVarType {
     /// Global identifier (variable) + location

@@ -80,7 +80,7 @@ impl GlMesh {
             ));
         }
 
-        let vao = GlVertexArray::new();
+        let vao = GlVertexArray::generate();
         let mut vbo = GlBufferObject::new(desc);
 
         vao.bind();
@@ -166,7 +166,7 @@ mod tests {
     fn test_mesh() {
         let display = gl_headless::build_display();
         display.load_gl();
-        
+
         struct MyVertex {
             position: [f32; 3],
         }

@@ -21,7 +21,7 @@ pub struct GlVertexArray {
 
 impl GlVertexArray {
     /// Creates new vertex array
-    pub fn new() -> Self {
+    pub fn generate() -> Self {
         let mut array = 0;
 
         unsafe {
@@ -56,11 +56,9 @@ impl GlVertexArray {
 
                 let err = gl::GetError();
                 if err != gl::NO_ERROR {
-                    gl::DeleteVertexArrays(1, &mut self.id.clone());
+                    gl::DeleteVertexArrays(1, &self.id);
                     gl::BindVertexArray(0);
-                    bail!(
-                        "failed to make an attribute pointer, err code: {err} ({err:#X})"
-                    );
+                    bail!("failed to make an attribute pointer, err code: {err} ({err:#X})");
                 }
             }
         }
@@ -170,7 +168,7 @@ mod tests {
             }]
         }
     }
-    
+
     #[test]
     fn test_vertex_buf() {
         let display = gl_headless::build_display();
@@ -178,12 +176,12 @@ mod tests {
 
         let desc = BufferObjDesc::new(BufferObjKind::Vertex, BufferUsage::StaticDraw);
 
-        let vao = GlVertexArray::new();
+        let vao = GlVertexArray::generate();
         let mut vbo = GlBufferObject::new(desc);
 
         vao.bind();
         vbo.bind();
-        
+
         unsafe {
             let vbo_write = vbo.write(vec![Position([1.0, 0.0, 1.0])]);
             assert!(vbo_write.is_ok(), "{}", vbo_write.unwrap_err());
@@ -192,23 +190,21 @@ mod tests {
         }
 
         vao.unbind();
-        vbo.unbind();        
+        vbo.unbind();
     }
-    
+
     #[test]
     fn test_empty_buf() {
         let display = gl_headless::build_display();
         display.load_gl();
-        
+
         let desc = BufferObjDesc::new(BufferObjKind::Vertex, BufferUsage::StaticDraw);
-  
+
         let mut vbo = GlBufferObject::new(desc);
         vbo.bind();
-        
-        let vbo_write = unsafe {
-            vbo.write(Vec::<Position>::new())
-        };
-        
+
+        let vbo_write = unsafe { vbo.write(Vec::<Position>::new()) };
+
         assert!(vbo_write.is_err())
     }
 }

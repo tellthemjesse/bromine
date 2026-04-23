@@ -100,13 +100,21 @@ pub struct World {
     pub typenames: TypeIdMap<&'static str>,
 }
 
-impl World {
-    pub fn new() -> Self {
+impl Default for World {
+    fn default() -> Self {
         Self {
             entity_index: 0,
             resources: TypeIdMap::with_hasher(NoOpHash),
             entity_components: TypeIdMap::with_hasher(NoOpHash),
             typenames: TypeIdMap::with_hasher(NoOpHash),
+        }
+    }
+}
+
+impl World {
+    pub fn new() -> Self {
+        Self {
+            ..Default::default()
         }
     }
 
@@ -221,10 +229,7 @@ impl World {
                 cell.borrow()
                     .iter()
                     .enumerate()
-                    .map(|(entity, component)| match component {
-                        Some(_) => Some(entity),
-                        None => None,
-                    })
+                    .map(|(entity, component)| component.as_ref().map(|_| entity))
                     .collect()
             })
     }

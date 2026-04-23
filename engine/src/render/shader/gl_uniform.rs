@@ -1,7 +1,7 @@
-use super::uniform::*;
 use super::program::{UniformBlocksList, UniformVariablesList};
+use super::uniform::*;
 use anyhow::{Result, ensure};
-use std::ffi::{CString, c_char, c_uint, c_int};
+use std::ffi::{CString, c_char, c_int, c_uint};
 use std::ptr;
 
 pub(crate) struct GlslUniforms(pub c_uint);
@@ -19,7 +19,7 @@ impl GlslUniforms {
         }
 
         (0..active_uniforms as c_uint)
-            .map(|idx| self.get_variable( idx, buf_size))
+            .map(|idx| self.get_variable(idx, buf_size))
             .collect()
     }
     /// Resolves uniform variable by its index
@@ -92,11 +92,7 @@ impl GlslUniforms {
             .collect()
     }
     /// Resolves uniform block by its index
-    fn get_block(
-        &self,
-        index: c_uint,
-        buf_size: c_int,
-    ) -> Result<UniformBlockMeta> {
+    fn get_block(&self, index: c_uint, buf_size: c_int) -> Result<UniformBlockMeta> {
         let mut buf: Vec<u8> = Vec::with_capacity(buf_size as usize);
         // length of the uniform block name excluding null terminator
         let mut buf_length = 0;
@@ -131,28 +127,40 @@ impl GlslUniforms {
     }
 
     fn get_location(&self, name: *const c_char) -> i32 {
-        unsafe {
-            gl::GetUniformLocation(self.0, name)
-        }
+        unsafe { gl::GetUniformLocation(self.0, name) }
     }
 
-    pub fn variables_to_list(&self, vars: &[UniformVarType], blocks: &[UniformBlockMeta]) -> UniformVariablesList {
-        vars.iter().filter_map(|var| match var.clone() {
-            UniformVarType::Global(meta, location) =>
-            Some(UniformVarDesc::new(meta.name, meta.datatype, location)),
-            UniformVarType::Scoped(meta, index) => {
-                let block_name = blocks.iter().find(|block| block.index == index).unwrap().name.clone();
-                let name = format!("{}.{}", block_name, meta.name);
-                let name_cstring = CString::new(name.clone()).unwrap();
-                let location = self.get_location(name_cstring.as_ptr());
-                Some(UniformVarDesc::new(name, meta.datatype, location as u32))
-            },
-            UniformVarType::Builtin => None,
-        })
-        .collect()
+    pub fn variables_to_list(
+        &self,
+        vars: &[UniformVarType],
+        blocks: &[UniformBlockMeta],
+    ) -> UniformVariablesList {
+        vars.iter()
+            .filter_map(|var| match var.clone() {
+                UniformVarType::Global(meta, location) => {
+                    Some(UniformVarDesc::new(meta.name, meta.datatype, location))
+                }
+                UniformVarType::Scoped(meta, index) => {
+                    let block_name = blocks
+                        .iter()
+                        .find(|block| block.index == index)
+                        .unwrap()
+                        .name
+                        .clone();
+                    let name = format!("{}.{}", block_name, meta.name);
+                    let name_cstring = CString::new(name.clone()).unwrap();
+                    let location = self.get_location(name_cstring.as_ptr());
+                    Some(UniformVarDesc::new(name, meta.datatype, location as u32))
+                }
+                UniformVarType::Builtin => None,
+            })
+            .collect()
     }
 
     pub fn blocks_to_list(&self, blocks: &[UniformBlockMeta]) -> UniformBlocksList {
-        blocks.iter().map(|block| UniformBlockDesc::new(block.name.clone(), block.binding)).collect()
+        blocks
+            .iter()
+            .map(|block| UniformBlockDesc::new(block.name.clone(), block.binding))
+            .collect()
     }
 }

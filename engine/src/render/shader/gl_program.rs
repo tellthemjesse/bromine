@@ -141,7 +141,12 @@ impl GlProgram {
     }
     /// Sets uniform value using data record
     pub fn set_uniform<T>(&self, u: UniformValue<T>) {
-        if let Some(variable) = self.desc.uniforms.iter().find(|desc| &desc.name == u.name()) {
+        if let Some(variable) = self
+            .desc
+            .uniforms
+            .iter()
+            .find(|desc| &desc.name == u.name())
+        {
             let location = variable.location as i32;
             unsafe {
                 let ptr = u.value_ptr();

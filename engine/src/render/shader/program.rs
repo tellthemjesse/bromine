@@ -1,6 +1,6 @@
 //! High-level representation of shaders
 
-use super::uniform::{UniformVarDesc, UniformBlockDesc};
+use super::uniform::{UniformBlockDesc, UniformVarDesc};
 
 pub type UniformVariablesList = Vec<UniformVarDesc>;
 pub type UniformBlocksList = Vec<UniformBlockDesc>;

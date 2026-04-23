@@ -13,13 +13,13 @@ macro_rules! query {
                 $world.map_to_entities::<$c2>().unwrap(),
             );
             let (it1, it2) = (
-                q1.iter(), 
+                q1.iter(),
                 q2.iter(),
             );
             $entity = it1.zip(it2)
                 .find(|(e1, e2)| e1.is_some() && e2.is_some())
                 .unwrap().0.unwrap();
-            
+
             $res = query!($world, $c1, $c2);
         }
     };
@@ -30,7 +30,7 @@ macro_rules! query {
                 $world.map_to_entities::<$c2>().unwrap(),
             );
             let (it1, it2) = (
-                q1.iter(), 
+                q1.iter(),
                 q2.iter(),
             );
             $entity = it1
@@ -45,9 +45,9 @@ macro_rules! query {
 }
 
 /// Prepend type with `mut` to get mutable access. Mutable queries are exclusive
-/// 
-/// # Panics 
-/// 
+///
+/// # Panics
+///
 /// Will panic if the queryable [`Resource`](crate::ecs::Resource) isn't registered
 #[macro_export]
 macro_rules! query_resource {
