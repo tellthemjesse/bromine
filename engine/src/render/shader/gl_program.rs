@@ -1,12 +1,9 @@
-//! Low-level implementation for [`shaders`](super::shader)
+//! Low-level implementation for [`shader program`](super::program)
 
-use crate::render::shader::GlslUniforms;
-
-use super::{program::*, uniform::*};
+use super::{gl_uniform::GlslUniforms, program::*, uniform::*};
 use anyhow::bail;
 use std::{
-    ffi::{CString, c_char, c_uint},
-    ptr,
+    ffi::{CString, c_char, c_uint}, ptr
 };
 
 #[derive(Debug)]
@@ -120,15 +117,15 @@ impl GlProgram {
         }
 
         let uniforms = GlslUniforms(program);
-        let vars = uniforms.get_varibles()?;
-        let blocks = uniforms.get_uniform_blocks()?;
+        let globals = uniforms.get_globals()?;
+        let blocks = uniforms.get_blocks()?;
 
-        let vars_list = uniforms.variables_to_list(&vars, &blocks);
-        let blocks_list = uniforms.blocks_to_list(&blocks);
+        let globals_list = uniforms.globals_to_list(globals);
+        let blocks_list = uniforms.blocks_to_list(blocks);
 
         Ok(Self {
             id: program,
-            desc: ProgramDesc::new(shaders_, vars_list, blocks_list),
+            desc: ProgramDesc::new(shaders_, globals_list, blocks_list),
         })
     }
     /// Returns the underlying object id
@@ -200,12 +197,15 @@ mod tests {
         layout (location = 0) out vec4 FragColor;
         layout (location = 0) uniform sampler2D u_Texture;
 
-        layout (std140, binding = 1) uniform ubo_Light {
-            vec3 position;
-            vec3 color;
-        };
+        struct Light { vec3 position; vec3 color; };
+
+        uniform Light u_Light;
+
+        layout (std140) uniform LightBlock { vec3 position; vec3 color; } u_LightBlock;
 
         void main() {
+            vec3 aPos = u_Light.position;
+            vec3 aColor = u_Light.color;
             FragColor = texture(u_Texture, f_TexCoords);
         }
     ";
@@ -236,5 +236,10 @@ mod tests {
             "couldn't link program: {}",
             program.unwrap_err()
         );
+
+        let program = program.unwrap();
+
+        assert_eq!(program.desc().uniforms.len(), 3);
+        assert_eq!(program.desc().blocks.len(), 1);
     }
 }

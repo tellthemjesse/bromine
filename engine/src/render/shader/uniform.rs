@@ -60,30 +60,15 @@ impl UniformBlockDesc {
     }
 }
 
-#[derive(Debug, Clone)]
-/// Type of a uniform variable within shader program
-///
-/// todo: atomics
-pub(crate) enum UniformVarType {
-    /// Global identifier (variable) + location
-    Global(UniformVarMeta, u32),
-    /// Scoped identifier (field name inside a structure) + block index
-    Scoped(UniformVarMeta, u32),
-    /// Glsl variable (prefixed with gl_)
-    Builtin,
-}
+/// Global identifier + location
+pub(crate) type GlobalIdentifier = (UniformVar, u32);
+/// Block identitifier + binding
+pub(crate) type BlockIdentifier = (String, u32);
 
 #[derive(Debug, Clone)]
-pub(crate) struct UniformVarMeta {
+pub(crate) struct UniformVar {
     pub name: String,
     pub datatype: GlslDatatype,
-}
-
-#[derive(Debug, Clone)]
-pub(crate) struct UniformBlockMeta {
-    pub name: String,
-    pub binding: u32,
-    pub index: u32,
 }
 
 /// Represents uniform value with data type `T` that matches specified [`GlslDatatype`].

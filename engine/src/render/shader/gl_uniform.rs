@@ -1,14 +1,19 @@
-use super::program::{UniformBlocksList, UniformVariablesList};
-use super::uniform::*;
-use anyhow::{Result, ensure};
-use std::ffi::{CString, c_char, c_int, c_uint};
-use std::ptr;
+//! Low-level implementation for [`uniforms`](super::uniform)
 
+use super::{
+    program::{UniformBlocksList, UniformVariablesList}, uniform::*
+};
+use anyhow::{Result, ensure};
+use std::{
+    ffi::{CString, c_char, c_int, c_uint}, ptr
+};
+
+/// Wraps shader program to perform a set of operations on its uniforms
 pub(crate) struct GlslUniforms(pub c_uint);
 
 impl GlslUniforms {
     /// Returns a list over active uniform variables
-    pub fn get_varibles(&self) -> Result<Vec<UniformVarType>> {
+    pub fn get_globals(&self) -> Result<Vec<GlobalIdentifier>> {
         let mut active_uniforms = 0;
         // length of the longest uniform variable name including null terminator
         let mut buf_size = 0;
@@ -19,11 +24,11 @@ impl GlslUniforms {
         }
 
         (0..active_uniforms as c_uint)
-            .map(|idx| self.get_variable(idx, buf_size))
+            .flat_map(|idx| self.get_global(idx, buf_size).transpose())
             .collect()
     }
     /// Resolves uniform variable by its index
-    fn get_variable(&self, index: c_uint, buf_size: c_int) -> Result<UniformVarType> {
+    fn get_global(&self, index: c_uint, buf_size: c_int) -> Result<Option<GlobalIdentifier>> {
         // raw pointer cast between *mut u8 and *mut c_char (*mut i8) is safe
         // and the type signature for Vec<T> can be inferred from the context,
         // but specifying T to be u8 is clearer
@@ -51,7 +56,7 @@ impl GlslUniforms {
         let name = String::from(buf_view);
 
         if name.starts_with("gl_") {
-            return Ok(UniformVarType::Builtin);
+            return Ok(None);
         }
 
         let name_cstring = CString::new(buf_view)?;
@@ -59,21 +64,16 @@ impl GlslUniforms {
 
         let datatype = GlslDatatype::try_from(type_)?;
 
-        let var_meta = UniformVarMeta { name, datatype };
+        let var_meta = UniformVar { name, datatype };
 
         if location == -1 {
-            let mut block_idx = -1;
-            unsafe {
-                gl::GetActiveUniformsiv(self.0, 1, &index, gl::UNIFORM_BLOCK_INDEX, &mut block_idx);
-            }
-            // if location is -1, this is either an atomic or a uniform block, so the index is always >= 0
-            return Ok(UniformVarType::Scoped(var_meta, block_idx as u32));
+            return Ok(None);
         }
 
-        Ok(UniformVarType::Global(var_meta, location as u32)) // this cast won't overflow
+        Ok(Some((var_meta, location as u32))) // this cast won't overflow
     }
     /// Returns a list over active uniform blocks
-    pub fn get_uniform_blocks(&self) -> Result<Vec<UniformBlockMeta>> {
+    pub fn get_blocks(&self) -> Result<Vec<BlockIdentifier>> {
         let mut active_blocks = 0;
         // length of the longest uniform block name including null terminator
         let mut buf_size = 0;
@@ -92,7 +92,7 @@ impl GlslUniforms {
             .collect()
     }
     /// Resolves uniform block by its index
-    fn get_block(&self, index: c_uint, buf_size: c_int) -> Result<UniformBlockMeta> {
+    fn get_block(&self, index: c_uint, buf_size: c_int) -> Result<BlockIdentifier> {
         let mut buf: Vec<u8> = Vec::with_capacity(buf_size as usize);
         // length of the uniform block name excluding null terminator
         let mut buf_length = 0;
@@ -119,48 +119,30 @@ impl GlslUniforms {
 
         ensure!(binding >= 0);
 
-        Ok(UniformBlockMeta {
-            name,
-            binding: binding as u32,
-            index,
-        })
+        Ok((name, binding as u32))
     }
-
-    fn get_location(&self, name: *const c_char) -> i32 {
+    /// Resolves uniform variable location by its name
+    fn get_location(&self, name: *const c_char) -> c_int {
         unsafe { gl::GetUniformLocation(self.0, name) }
     }
-
-    pub fn variables_to_list(
+    /// Transforms the list over active uniform variables to the format, suitable for a program desciptor
+    pub fn globals_to_list(
         &self,
-        vars: &[UniformVarType],
-        blocks: &[UniformBlockMeta],
+        globals: impl IntoIterator<Item = GlobalIdentifier>,
     ) -> UniformVariablesList {
-        vars.iter()
-            .filter_map(|var| match var.clone() {
-                UniformVarType::Global(meta, location) => {
-                    Some(UniformVarDesc::new(meta.name, meta.datatype, location))
-                }
-                UniformVarType::Scoped(meta, index) => {
-                    let block_name = blocks
-                        .iter()
-                        .find(|block| block.index == index)
-                        .unwrap()
-                        .name
-                        .clone();
-                    let name = format!("{}.{}", block_name, meta.name);
-                    let name_cstring = CString::new(name.clone()).unwrap();
-                    let location = self.get_location(name_cstring.as_ptr());
-                    Some(UniformVarDesc::new(name, meta.datatype, location as u32))
-                }
-                UniformVarType::Builtin => None,
-            })
+        globals
+            .into_iter()
+            .map(|(var, location)| UniformVarDesc::new(var.name, var.datatype, location))
             .collect()
     }
-
-    pub fn blocks_to_list(&self, blocks: &[UniformBlockMeta]) -> UniformBlocksList {
+    /// Transforms the list over active uniform blocks to the format, suitable for a program descriptor
+    pub fn blocks_to_list(
+        &self,
+        blocks: impl IntoIterator<Item = BlockIdentifier>,
+    ) -> UniformBlocksList {
         blocks
-            .iter()
-            .map(|block| UniformBlockDesc::new(block.name.clone(), block.binding))
+            .into_iter()
+            .map(|(name, binding)| UniformBlockDesc::new(name, binding))
             .collect()
     }
 }
