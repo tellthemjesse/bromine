@@ -1,6 +1,5 @@
 use crate::ecs::{
-    components::{Camera, Position},
-    resources::{MouseDelta, PressedKeys, TimeDelta, View},
+    components::{Camera, Position}, resources::{MouseDelta, PressedKeys, TimeDelta, View}
 };
 use engine::{ecs::World, query, query_resource};
 use glam::{Mat4, Vec3, Vec3Swizzles};

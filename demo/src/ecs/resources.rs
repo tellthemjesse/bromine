@@ -1,9 +1,6 @@
-use engine::ecs::Resource;
-use engine::impl_resource;
-use engine::render::prelude::*;
+use engine::{ecs::Resource, impl_resource, render::prelude::*};
 use glam::Mat4;
-use std::collections::HashSet;
-use std::ops::AddAssign;
+use std::{collections::HashSet, ops::AddAssign};
 use winit::keyboard::KeyCode;
 
 #[macro_export]
@@ -30,6 +27,7 @@ macro_rules! impl_newtype {
         }
 
         impl $type {
+            #[allow(unused)]
             pub fn value(&self) -> &$target {
                 &self.0
             }

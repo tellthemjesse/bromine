@@ -1,10 +1,7 @@
-use engine::ecs::Component;
-use engine::impl_component;
-use engine::render::GlModel;
+use crate::impl_newtype;
+use engine::{ecs::Component, impl_component, render::GlModel};
 use glam::Vec3;
 use std::ops::AddAssign;
-
-use crate::impl_newtype;
 
 #[derive(Debug)]
 pub struct Camera {

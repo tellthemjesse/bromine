@@ -1,21 +1,15 @@
 use super::application::{ApplicationDemo, FOV_Y};
 use crate::ecs::{
-    resources::{MouseDelta, PressedKeys, Projection},
-    systems::{
-        camera::{s_camera_control, s_camera_view},
-        render::s_render,
-    },
+    resources::{MouseDelta, PressedKeys, Projection}, systems::{
+        camera::{s_camera_control, s_camera_view}, render::s_render
+    }
 };
 use engine::{query_resource, window::game::Game};
 use glam::Mat4;
 use glutin::{context::PossiblyCurrentGlContext, prelude::GlSurface};
 use std::num::NonZeroU32;
 use winit::{
-    dpi::PhysicalSize,
-    event::{ElementState, KeyEvent},
-    event_loop::ActiveEventLoop,
-    keyboard::{KeyCode, PhysicalKey},
-    window::WindowId,
+    dpi::PhysicalSize, event::{ElementState, KeyEvent}, event_loop::ActiveEventLoop, keyboard::{KeyCode, PhysicalKey}, window::WindowId
 };
 
 pub fn resized(app: &mut ApplicationDemo, window_id: WindowId, physical_size: PhysicalSize<u32>) {

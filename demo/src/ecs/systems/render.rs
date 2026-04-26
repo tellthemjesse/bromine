@@ -1,11 +1,8 @@
 use crate::ecs::{
-    components::{Camera, Model, Position},
-    resources::{Projection, SceneProgram, Time, View},
+    components::{Camera, Model, Position}, resources::{Projection, SceneProgram, Time, View}
 };
 use engine::{
-    ecs::World,
-    query, query_resource,
-    render::prelude::{GlslDatatype, Renderable, UniformValue},
+    ecs::World, query, query_resource, render::prelude::{GlslDatatype, Renderable, UniformValue}
 };
 
 pub fn s_render(world: &mut World) {

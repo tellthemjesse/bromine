@@ -1,28 +1,19 @@
 use super::window_event::*;
-use crate::ecs::components::{Camera, Model, Position};
-use crate::ecs::resources::{
-    MouseDelta, PressedKeys, Projection, SceneProgram, Time, TimeDelta, View,
+use crate::ecs::{
+    components::{Camera, Model, Position}, resources::{MouseDelta, PressedKeys, Projection, SceneProgram, Time, TimeDelta, View}
 };
-use engine::render::prelude::*;
-use engine::{ecs::World, query_resource, window::game::Game};
+use engine::{ecs::World, query_resource, render::prelude::*, window::game::Game};
 use glam::{Mat4, Vec3};
-use glutin::context::{ContextApi, Version};
 use glutin::{
-    config::ConfigTemplateBuilder,
-    context::{ContextAttributesBuilder, NotCurrentGlContext, PossiblyCurrentContext},
-    display::{GetGlDisplay, GlDisplay},
-    surface::{GlSurface, Surface, SurfaceAttributesBuilder, SwapInterval, WindowSurface},
+    config::ConfigTemplateBuilder, context::{
+        ContextApi, ContextAttributesBuilder, NotCurrentGlContext, PossiblyCurrentContext, Version
+    }, display::{GetGlDisplay, GlDisplay}, surface::{GlSurface, Surface, SurfaceAttributesBuilder, SwapInterval, WindowSurface}
 };
 use glutin_winit::DisplayBuilder;
 use raw_window_handle::HasWindowHandle;
 use std::{collections::HashSet, ffi::CString, num::NonZeroU32, time::Instant};
-use winit::event::MouseScrollDelta;
 use winit::{
-    application::ApplicationHandler,
-    dpi::LogicalSize,
-    event::{DeviceEvent, DeviceId, StartCause, WindowEvent},
-    event_loop::{ActiveEventLoop, ControlFlow},
-    window::{Theme, Window, WindowAttributes, WindowId},
+    application::ApplicationHandler, dpi::LogicalSize, event::{DeviceEvent, DeviceId, MouseScrollDelta, StartCause, WindowEvent}, event_loop::{ActiveEventLoop, ControlFlow}, window::{Theme, Window, WindowAttributes, WindowId}
 };
 
 pub(super) const WINDOW_WIDTH: u32 = 1600;
