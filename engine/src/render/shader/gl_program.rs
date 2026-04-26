@@ -136,14 +136,17 @@ impl GlProgram {
     pub fn desc(&self) -> &ProgramDesc {
         &self.desc
     }
+    /// Searches for a uniform with specified `name`
+    pub fn find_uniform(&self, name: &str) -> Option<&UniformVarDesc> {
+        self.desc.uniforms.iter().find(|desc| desc.name.eq(name))
+    }
+    /// Searches for a uniform block with specified `name`
+    pub fn find_block(&self, name: &str) -> Option<&UniformBlockDesc> {
+        self.desc.blocks.iter().find(|desc| desc.name.eq(name))
+    }
     /// Sets uniform value using data record
     pub fn set_uniform<T>(&self, u: UniformValue<T>) {
-        if let Some(variable) = self
-            .desc
-            .uniforms
-            .iter()
-            .find(|desc| &desc.name == u.name())
-        {
+        if let Some(variable) = self.find_uniform(u.name()) {
             let location = variable.location as i32;
             unsafe {
                 let ptr = u.value_ptr();
@@ -176,6 +179,8 @@ impl GlProgram {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::render::{prelude::*, shader::gl_uniform::GlUniformBuffer};
+    use anyhow::Error;
 
     const VERTEX_SHADER: &str = r"
         #version 460 core
@@ -201,7 +206,10 @@ mod tests {
 
         uniform Light u_Light;
 
-        layout (std140) uniform LightBlock { vec3 position; vec3 color; } u_LightBlock;
+        layout (std140, binding = 0) uniform u_LightBlock {
+            vec3 position;
+            float intensity;
+        };
 
         void main() {
             vec3 aPos = u_Light.position;
@@ -211,35 +219,56 @@ mod tests {
     ";
 
     #[test]
-    fn test_program() {
+    fn test_program() -> Result<(), Error> {
         let display = gl_headless::build_display();
         display.load_gl();
 
-        let vs = GlShader::compile(VERTEX_SHADER, ShaderDesc::vert("v_test"));
-        let fs = GlShader::compile(FRAGMENT_SHADER, ShaderDesc::frag("f_test"));
-
-        assert!(
-            vs.is_ok(),
-            "couldn't compile vertex shader: {}",
-            vs.unwrap_err()
-        );
-        assert!(
-            fs.is_ok(),
-            "couldn't compile fragment shader: {}",
-            fs.unwrap_err()
-        );
-
-        let program = GlProgram::link(vec![vs.unwrap(), fs.unwrap()]);
-
-        assert!(
-            program.is_ok(),
-            "couldn't link program: {}",
-            program.unwrap_err()
-        );
-
-        let program = program.unwrap();
+        let shaders = vec![
+            GlShader::compile(VERTEX_SHADER, ShaderDesc::vert("v_test"))?,
+            GlShader::compile(FRAGMENT_SHADER, ShaderDesc::frag("f_test"))?,
+        ];
+        let program = GlProgram::link(shaders)?;
 
         assert_eq!(program.desc().uniforms.len(), 3);
         assert_eq!(program.desc().blocks.len(), 1);
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_ubo() -> Result<(), Error> {
+        let display = gl_headless::build_display();
+        display.load_gl();
+
+        #[repr(C)]
+        struct LightBlock {
+            positon: [f32; 3],
+            intesity: f32,
+        }
+
+        let buf_desc = BufferObjDesc::new(BufferObjKind::Uniform, BufferUsage::DynamicDraw);
+        let mut buf = GlUniformBuffer::new(buf_desc)?;
+        buf.bind();
+        unsafe {
+            buf.write(vec![LightBlock {
+                positon: [0.0, 0.0, 0.0],
+                intesity: 1.0,
+            }])?
+        }
+        buf.unbind();
+
+        let shaders = vec![
+            GlShader::compile(VERTEX_SHADER, ShaderDesc::vert("v_test"))?,
+            GlShader::compile(FRAGMENT_SHADER, ShaderDesc::frag("f_test"))?,
+        ];
+        let program = GlProgram::link(shaders)?;
+
+        let block = program
+            .find_block("u_LightBlock")
+            .expect("couldn't find block");
+
+        buf.buffer_base(block.binding)?;
+
+        Ok(())
     }
 }

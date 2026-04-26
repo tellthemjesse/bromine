@@ -3,7 +3,8 @@
 use super::{
     program::{UniformBlocksList, UniformVariablesList}, uniform::*
 };
-use anyhow::{Result, ensure};
+use crate::render::prelude::{BufferObjDesc, BufferObjKind, GlBufferObject};
+use anyhow::ensure;
 use std::{
     ffi::{CString, c_char, c_int, c_uint}, ptr
 };
@@ -13,7 +14,7 @@ pub(crate) struct GlslUniforms(pub c_uint);
 
 impl GlslUniforms {
     /// Returns a list over active uniform variables
-    pub fn get_globals(&self) -> Result<Vec<GlobalIdentifier>> {
+    pub fn get_globals(&self) -> anyhow::Result<Vec<GlobalIdentifier>> {
         let mut active_uniforms = 0;
         // length of the longest uniform variable name including null terminator
         let mut buf_size = 0;
@@ -28,7 +29,11 @@ impl GlslUniforms {
             .collect()
     }
     /// Resolves uniform variable by its index
-    fn get_global(&self, index: c_uint, buf_size: c_int) -> Result<Option<GlobalIdentifier>> {
+    fn get_global(
+        &self,
+        index: c_uint,
+        buf_size: c_int,
+    ) -> anyhow::Result<Option<GlobalIdentifier>> {
         // raw pointer cast between *mut u8 and *mut c_char (*mut i8) is safe
         // and the type signature for Vec<T> can be inferred from the context,
         // but specifying T to be u8 is clearer
@@ -73,7 +78,7 @@ impl GlslUniforms {
         Ok(Some((var_meta, location as u32))) // this cast won't overflow
     }
     /// Returns a list over active uniform blocks
-    pub fn get_blocks(&self) -> Result<Vec<BlockIdentifier>> {
+    pub fn get_blocks(&self) -> anyhow::Result<Vec<BlockIdentifier>> {
         let mut active_blocks = 0;
         // length of the longest uniform block name including null terminator
         let mut buf_size = 0;
@@ -92,7 +97,7 @@ impl GlslUniforms {
             .collect()
     }
     /// Resolves uniform block by its index
-    fn get_block(&self, index: c_uint, buf_size: c_int) -> Result<BlockIdentifier> {
+    fn get_block(&self, index: c_uint, buf_size: c_int) -> anyhow::Result<BlockIdentifier> {
         let mut buf: Vec<u8> = Vec::with_capacity(buf_size as usize);
         // length of the uniform block name excluding null terminator
         let mut buf_length = 0;
@@ -144,5 +149,69 @@ impl GlslUniforms {
             .into_iter()
             .map(|(name, binding)| UniformBlockDesc::new(name, binding))
             .collect()
+    }
+}
+
+pub struct GlUniformBuffer {
+    buf: GlBufferObject,
+}
+
+impl GlUniformBuffer {
+    /// Creates new empty buffer object
+    ///
+    /// # Errors
+    /// Fails if the provided descriptor kind isn't [`BufferObjKind::Uniform`]
+    pub fn new(desc: BufferObjDesc) -> anyhow::Result<Self> {
+        ensure!(
+            matches!(desc.kind, BufferObjKind::Uniform),
+            "buffer kind mismatch: expected {:?}, got {:?}",
+            BufferObjKind::Uniform,
+            desc.kind
+        );
+
+        let buf = GlBufferObject::new(desc);
+        Ok(Self { buf })
+    }
+    /// Binds this buffer
+    pub fn bind(&self) {
+        self.buf.bind();
+    }
+    /// Unbinds this buffer
+    pub fn unbind(&self) {
+        self.buf.unbind();
+    }
+    /// Submits data to the GPU
+    ///
+    /// # Safety
+    /// The caller must ensure that this buffer object is active
+    ///
+    /// # Errors
+    /// Fails if the `data` is empty
+    pub unsafe fn write<T>(&mut self, data: Vec<T>) -> anyhow::Result<()> {
+        unsafe { self.buf.write(data) }
+    }
+    /// Binds this buffer to the specified binding point
+    ///
+    /// # Errors
+    /// Fails if the provided `binding` is greater or equal to the indexed number of binding points
+    /// supported by *target*,
+    /// or if the underlying buffer is empty
+    pub fn buffer_base(&self, binding: c_uint) -> anyhow::Result<()> {
+        ensure!(
+            self.buf.count() > 0,
+            "cannot call this operation on an empty buffer"
+        );
+
+        unsafe {
+            gl::BindBufferBase(self.buf.desc().kind as c_uint, binding, self.buf.id());
+        }
+
+        let err = unsafe { gl::GetError() };
+        ensure!(
+            err == gl::NO_ERROR,
+            "operation failed, err code {err} ({err:#X})"
+        );
+
+        Ok(())
     }
 }
