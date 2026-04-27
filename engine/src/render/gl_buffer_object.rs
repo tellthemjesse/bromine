@@ -1,9 +1,8 @@
 //! Low-level implementation for [`buffer_object`](super::buffer_object) module
 
-use super::buffer_object::*;
-use super::vertex::Vertex;
-use anyhow::bail;
-use std::ffi::c_void;
+use super::{buffer_object::*, vertex::Vertex};
+use anyhow::{bail, ensure};
+use std::{ffi::{c_void, c_uint}, ptr};
 
 #[derive(Debug)]
 /// Represents OpenGL buffer object
@@ -79,7 +78,7 @@ impl GlVertexArray {
 
 impl GlBufferObject {
     /// Creates new empty buffer object
-    pub fn new(desc: BufferObjDesc) -> Self {
+    pub fn generate(desc: BufferObjDesc) -> Self {
         let mut buffer = 0;
 
         unsafe {
@@ -101,32 +100,45 @@ impl GlBufferObject {
     /// Submits data to the GPU
     ///
     /// # Safety
-    ///
     /// The caller must ensure that this buffer object is active
     pub unsafe fn write<T>(&mut self, data: Vec<T>) -> anyhow::Result<()> {
-        if data.is_empty() {
-            bail!("cannot submit an empty buffer to the GPU");
-        }
+        ensure!(!data.is_empty(), "cannot submit an empty buffer to the GPU");
 
         self.count = data.len();
 
         unsafe {
             gl::BufferData(
-                self.desc.kind as u32,
+                self.desc.kind as c_uint,
                 (size_of::<T>() * self.count) as isize,
                 data.as_ptr() as *const c_void,
-                self.desc.usage as u32,
+                self.desc.usage as c_uint,
             );
 
             let err = gl::GetError();
             if err != gl::NO_ERROR {
                 gl::DeleteBuffers(1, &self.id);
-                gl::BindBuffer(self.desc.kind as u32, 0);
+                gl::BindBuffer(self.desc.kind as c_uint, 0);
                 bail!("failed to buffer data, err code: {err} ({err:#X})");
             }
         }
 
         Ok(())
+    }
+    /// Allocates memory for `count` elements
+    /// 
+    /// # Safety
+    /// The caller must ensure that this buffer object is active
+    pub unsafe fn write_zeroed<T>(&mut self, count: usize) {
+        self.count = count;
+        
+        unsafe {
+            gl::BufferData(
+                self.desc.kind as c_uint,
+                (size_of::<T>() * self.count) as isize,
+                ptr::null(),
+                self.desc.usage as c_uint,
+            );
+        }
     }
     /// Unbinds this buffer
     pub fn unbind(&self) {
@@ -150,8 +162,10 @@ impl GlBufferObject {
 
 #[cfg(test)]
 mod tests {
-    use super::super::vertex::{AttributeKind, VertexAttrib};
-    use super::*;
+    use super::{
+        super::vertex::{AttributeKind, VertexAttrib}, *
+    };
+    use anyhow::Error;
 
     #[repr(transparent)]
     struct Position(pub [f32; 3]);
@@ -170,27 +184,27 @@ mod tests {
     }
 
     #[test]
-    fn test_vertex_buf() {
+    fn test_vertex_buf() -> Result<(), Error> {
         let display = gl_headless::build_display();
         display.load_gl();
 
         let desc = BufferObjDesc::new(BufferObjKind::Vertex, BufferUsage::StaticDraw);
 
         let vao = GlVertexArray::generate();
-        let mut vbo = GlBufferObject::new(desc);
+        let mut vbo = GlBufferObject::generate(desc);
 
         vao.bind();
         vbo.bind();
 
         unsafe {
-            let vbo_write = vbo.write(vec![Position([1.0, 0.0, 1.0])]);
-            assert!(vbo_write.is_ok(), "{}", vbo_write.unwrap_err());
-            let vao_write = vao.write::<Position>();
-            assert!(vao_write.is_ok(), "{}", vao_write.unwrap_err());
+            vbo.write(vec![Position([1.0, 0.0, 1.0])])?;
+            vao.write::<Position>()?;
         }
 
         vao.unbind();
         vbo.unbind();
+        
+        Ok(())
     }
 
     #[test]
@@ -200,7 +214,7 @@ mod tests {
 
         let desc = BufferObjDesc::new(BufferObjKind::Vertex, BufferUsage::StaticDraw);
 
-        let mut vbo = GlBufferObject::new(desc);
+        let mut vbo = GlBufferObject::generate(desc);
         vbo.bind();
 
         let vbo_write = unsafe { vbo.write(Vec::<Position>::new()) };

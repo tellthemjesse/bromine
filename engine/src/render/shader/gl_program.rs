@@ -218,6 +218,12 @@ mod tests {
         }
     ";
 
+    #[repr(C)]
+    struct LightBlock {
+        positon: [f32; 3],
+        intesity: f32,
+    }
+
     #[test]
     fn test_program() -> Result<(), Error> {
         let display = gl_headless::build_display();
@@ -240,20 +246,12 @@ mod tests {
         let display = gl_headless::build_display();
         display.load_gl();
 
-        #[repr(C)]
-        struct LightBlock {
-            positon: [f32; 3],
-            intesity: f32,
-        }
-
         let buf_desc = BufferObjDesc::new(BufferObjKind::Uniform, BufferUsage::DynamicDraw);
-        let mut buf = GlUniformBuffer::new(buf_desc)?;
+        let mut buf = GlUniformBuffer::generate(buf_desc)?;
+
         buf.bind();
         unsafe {
-            buf.write(vec![LightBlock {
-                positon: [0.0, 0.0, 0.0],
-                intesity: 1.0,
-            }])?
+            buf.write_zeroed::<LightBlock>(1);
         }
         buf.unbind();
 

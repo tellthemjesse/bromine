@@ -1,11 +1,7 @@
 use crate::render::{
-    buffer_object::{BufferObjDesc, BufferObjKind},
-    element::*,
-    gl_buffer_object::*,
-    renderable::Renderable,
-    vertex::Vertex,
+    buffer_object::{BufferObjDesc, BufferObjKind}, element::*, gl_buffer_object::*, renderable::Renderable, vertex::Vertex
 };
-use anyhow::anyhow;
+use anyhow::ensure;
 use std::ptr;
 
 #[derive(Debug)]
@@ -17,16 +13,15 @@ pub struct GlElementBuffer {
 
 impl GlElementBuffer {
     /// Creates new element buffer object
-    pub fn new(desc: BufferObjDesc) -> anyhow::Result<Self> {
-        if desc.kind != BufferObjKind::Element {
-            return Err(anyhow!(
-                "buffer kind mismatch, expected {:?}, got {:?}",
-                BufferObjKind::Element,
-                desc.kind
-            ));
-        }
+    pub fn generate(desc: BufferObjDesc) -> anyhow::Result<Self> {
+        ensure!(
+            matches!(desc.kind, BufferObjKind::Element),
+            "buffer kind mismatch, expected {:?}, got {:?}",
+            BufferObjKind::Element,
+            desc.kind
+        );
 
-        let buf = GlBufferObject::new(desc);
+        let buf = GlBufferObject::generate(desc);
         Ok(Self { buf, repr: 0 })
     }
     /// Binds this buffer
@@ -36,7 +31,6 @@ impl GlElementBuffer {
     /// Submits data to the GPU
     ///
     /// # Safety
-    ///
     /// The caller must ensure that this buffer object is active
     pub unsafe fn write<E: Element>(&mut self, data: Vec<E>) -> anyhow::Result<()> {
         self.repr = E::repr();
@@ -72,16 +66,15 @@ impl GlMesh {
         desc: BufferObjDesc,
         primitive: Primitive,
     ) -> anyhow::Result<Self> {
-        if desc.kind != BufferObjKind::Vertex {
-            return Err(anyhow!(
-                "buffer kind mismatch, expected {:?}, got {:?}",
-                BufferObjKind::Vertex,
-                desc.kind
-            ));
-        }
+        ensure!(
+            matches!(desc.kind, BufferObjKind::Vertex),
+            "buffer kind mismatch, expected {:?}, got {:?}",
+            BufferObjKind::Vertex,
+            desc.kind
+        );
 
         let vao = GlVertexArray::generate();
-        let mut vbo = GlBufferObject::new(desc);
+        let mut vbo = GlBufferObject::generate(desc);
 
         vao.bind();
         vbo.bind();
@@ -105,7 +98,7 @@ impl GlMesh {
         data: Vec<E>,
         desc: BufferObjDesc,
     ) -> anyhow::Result<Self> {
-        let mut ebo = GlElementBuffer::new(desc)?;
+        let mut ebo = GlElementBuffer::generate(desc)?;
 
         self.vao.bind();
         ebo.bind();
@@ -161,48 +154,42 @@ impl Renderable for GlMesh {
 mod tests {
     use super::*;
     use crate::render::{buffer_object::*, vertex::*};
+    use std::mem::size_of;
+    use anyhow::Error;
+
+    #[repr(transparent)]
+    pub struct Position(pub [f32; 3]);
+
+    impl Vertex for Position {
+        fn attributes() -> impl IntoIterator<Item = VertexAttrib> {
+            [VertexAttrib {
+                index: 0,
+                size: 3,
+                kind: AttributeKind::Float,
+                normalized: true,
+                stride: size_of::<Position>(),
+                offset: 0,
+            }]
+        }
+    }
 
     #[test]
-    fn test_mesh() {
+    fn test_mesh() -> Result<(), Error> {
         let display = gl_headless::build_display();
         display.load_gl();
 
-        struct MyVertex {
-            position: [f32; 3],
-        }
-
-        impl Vertex for MyVertex {
-            fn attributes() -> impl IntoIterator<Item = VertexAttrib> {
-                [VertexAttrib {
-                    index: 0,
-                    size: 3,
-                    kind: AttributeKind::Float,
-                    normalized: true,
-                    stride: std::mem::size_of::<MyVertex>(),
-                    offset: std::mem::offset_of!(MyVertex, position),
-                }]
-            }
-        }
-
         let vertices = vec![
-            MyVertex {
-                position: [0.54, 0.21, -0.43],
-            },
-            MyVertex {
-                position: [0.54, 0.66, -0.43],
-            },
-            MyVertex {
-                position: [0.33, -0.12, 0.94],
-            },
+            Position([0.54, 0.21, -0.43]),
+            Position([0.54, 0.66, -0.43]),
+            Position([0.33, -0.12, 0.94]),
         ];
-        let v_desc = BufferObjDesc::new(BufferObjKind::Vertex, BufferUsage::StaticDraw);
+        let desc1 = BufferObjDesc::new(BufferObjKind::Vertex, BufferUsage::StaticDraw);
 
         let elements = vec![0, 2, 1_u32];
-        let e_desc = BufferObjDesc::new(BufferObjKind::Element, BufferUsage::StaticDraw);
+        let desc2 = BufferObjDesc::new(BufferObjKind::Element, BufferUsage::StaticDraw);
 
-        let _ = GlMesh::new::<MyVertex>(vertices, v_desc, Primitive::Triangles)
-            .unwrap()
-            .with_element_buffer(elements, e_desc)
-            .unwrap();
+        GlMesh::new(vertices, desc1, Primitive::Triangles)?.with_element_buffer(elements, desc2)?;
+
+        Ok(())
     }
 }

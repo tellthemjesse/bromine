@@ -21,7 +21,7 @@ impl Material {
         }
     }
 
-    pub fn new_chromatic(
+    pub fn new_rgb(
         specular: [f32; 3],
         diffuse: [f32; 3],
         ambient: [f32; 3],

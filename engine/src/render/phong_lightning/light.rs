@@ -20,7 +20,7 @@ impl Light {
         }
     }
 
-    pub fn new_chromatic(specular: [f32; 3], diffuse: [f32; 3], ambient: [f32; 3]) -> Self {
+    pub fn new_rgb(specular: [f32; 3], diffuse: [f32; 3], ambient: [f32; 3]) -> Self {
         Self {
             specular,
             diffuse,

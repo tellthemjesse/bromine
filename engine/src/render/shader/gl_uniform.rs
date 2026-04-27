@@ -161,7 +161,7 @@ impl GlUniformBuffer {
     ///
     /// # Errors
     /// Fails if the provided descriptor kind isn't [`BufferObjKind::Uniform`]
-    pub fn new(desc: BufferObjDesc) -> anyhow::Result<Self> {
+    pub fn generate(desc: BufferObjDesc) -> anyhow::Result<Self> {
         ensure!(
             matches!(desc.kind, BufferObjKind::Uniform),
             "buffer kind mismatch: expected {:?}, got {:?}",
@@ -169,16 +169,12 @@ impl GlUniformBuffer {
             desc.kind
         );
 
-        let buf = GlBufferObject::new(desc);
+        let buf = GlBufferObject::generate(desc);
         Ok(Self { buf })
     }
     /// Binds this buffer
     pub fn bind(&self) {
         self.buf.bind();
-    }
-    /// Unbinds this buffer
-    pub fn unbind(&self) {
-        self.buf.unbind();
     }
     /// Submits data to the GPU
     ///
@@ -189,6 +185,19 @@ impl GlUniformBuffer {
     /// Fails if the `data` is empty
     pub unsafe fn write<T>(&mut self, data: Vec<T>) -> anyhow::Result<()> {
         unsafe { self.buf.write(data) }
+    }
+    /// Allocates memory for `count` elements
+    ///
+    /// # Safety
+    /// The caller must ensure that this buffer object is active
+    pub unsafe fn write_zeroed<T>(&mut self, count: usize) {
+        unsafe {
+            self.buf.write_zeroed::<T>(count);
+        }
+    }
+    /// Unbinds this buffer
+    pub fn unbind(&self) {
+        self.buf.unbind();
     }
     /// Binds this buffer to the specified binding point
     ///
