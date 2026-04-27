@@ -38,7 +38,6 @@ impl GlVertexArray {
     /// Submits the attributes for given vertex type
     ///
     /// # Safety
-    ///
     /// The caller must ensure that this buffer object is active
     pub unsafe fn write<V: Vertex>(&self) -> anyhow::Result<()> {
         unsafe {
