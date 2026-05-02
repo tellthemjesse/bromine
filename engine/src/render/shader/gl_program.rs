@@ -3,7 +3,8 @@
 use super::{gl_uniform::GlslUniforms, program::*, uniform::*};
 use anyhow::bail;
 use std::{
-    ffi::{CString, c_char, c_uint}, ptr
+    ffi::{CString, c_char, c_uint},
+    ptr,
 };
 
 #[derive(Debug)]
@@ -202,7 +203,7 @@ mod tests {
         layout (location = 0) out vec4 FragColor;
         layout (location = 0) uniform sampler2D u_Texture;
 
-        struct Light { vec3 position; vec3 color; };
+        struct Light { float intensity; vec3 color; };
 
         uniform Light u_Light;
 
@@ -212,9 +213,8 @@ mod tests {
         };
 
         void main() {
-            vec3 aPos = u_Light.position;
-            vec3 aColor = u_Light.color;
-            FragColor = texture(u_Texture, f_TexCoords);
+            vec3 lightColor = u_Light.color * u_Light.intensity;
+            FragColor = texture(u_Texture, f_TexCoords) + vec4(lightColor, 0.0);
         }
     ";
 
