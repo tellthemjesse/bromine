@@ -52,18 +52,13 @@ impl ApplicationHandler<DisplayRequest> for Tests {
         let window = window.unwrap();
         let raw_window_handle = window.window_handle().unwrap().as_raw();
 
-        let api = if cfg!(windows) {
-            ContextApi::OpenGl(Some(Version::new(4, 6)))
-        } else {
-            ContextApi::Gles(Some(Version::new(4, 6)))
-        };
-
+        let api = ContextApi::OpenGl(Some(Version::new(4, 6)));
         let context_attributes = ContextAttributesBuilder::new()
             .with_context_api(api)
             .build(Some(raw_window_handle));
 
         let dispay = gl_config.display();
-        
+
         let not_current_gl_context = unsafe {
             dispay
                 .create_context(&gl_config, &context_attributes)
@@ -76,12 +71,8 @@ impl ApplicationHandler<DisplayRequest> for Tests {
             NonZeroU32::new(600).unwrap(),
         );
 
-        let surface = unsafe {
-            dispay
-                .create_window_surface(&gl_config, &attrs)
-                .unwrap()
-        };
-       
+        let surface = unsafe { dispay.create_window_surface(&gl_config, &attrs).unwrap() };
+
         request
             .send((window, not_current_gl_context, surface, dispay))
             .unwrap();
@@ -111,7 +102,7 @@ impl ContextSurfacePair {
     }
 }
 
-/// Builds a display 
+/// Builds a display
 pub fn build_display() -> WindowDisplay {
     static EVENT_LOOP_PROXY: RwLock<Option<EventLoopProxy<DisplayRequest>>> = RwLock::new(None);
     static INIT_EVENT_LOOP: Once = Once::new();
