@@ -1,6 +1,7 @@
 //! Public re-exports
 
 pub use super::buffer_object::*;
+#[cfg(feature = "debug")]
 pub use super::debug_callback::*;
 pub use super::element::*;
 pub use super::gl_buffer_object::*;

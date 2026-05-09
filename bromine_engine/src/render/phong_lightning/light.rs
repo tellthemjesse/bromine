@@ -1,5 +1,5 @@
 use crate::ecs::Component;
-use crate::impl_component;
+use crate::ecs::impl_component;
 use mint::{Point3, Vector3};
 
 #[derive(Debug, Clone, Copy)]

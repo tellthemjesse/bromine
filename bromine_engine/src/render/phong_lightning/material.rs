@@ -1,5 +1,5 @@
 use crate::ecs::Component;
-use crate::impl_component;
+use crate::ecs::impl_component;
 
 #[derive(Debug, Clone, Copy)]
 pub struct Material {

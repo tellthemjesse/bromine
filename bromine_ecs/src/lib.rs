@@ -1,8 +1,7 @@
+mod hash;
 use crate::hash::NoOpHash;
 use std::{
-    any::{Any, TypeId, type_name},
-    cell::{Ref, RefCell, RefMut},
-    collections::HashMap,
+    any::{type_name, Any, TypeId}, cell::{Ref, RefCell, RefMut}, collections::HashMap
 };
 
 // ==== ENTITY ====

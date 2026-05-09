@@ -1,0 +1,12 @@
+[package]
+name = "bromine_macro"
+version = "0.1.0"
+edition = "2024"
+
+[lib]
+proc-macro = true
+
+[dependencies]
+bromine_ecs = { path = "../bromine_ecs" }
+syn = "2.0"
+quote = "1.0"

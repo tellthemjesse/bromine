@@ -69,7 +69,7 @@ mod test {
 
     #[test]
     fn test_query() {
-        use crate::impl_component;
+        use crate::ecs::impl_component;
 
         let mut world = World::new();
         let entity = world.spawn_entity();
