@@ -2,7 +2,7 @@ use super::window_event::*;
 use crate::ecs::{
     components::{Camera, Model, Position}, resources::{MouseDelta, PressedKeys, Projection, SceneProgram, Time, TimeDelta, View}
 };
-use engine::{ecs::World, query_resource, render::prelude::*, window::game::Game};
+use bromine_engine::{ecs::World, query_resource, render::prelude::*, window::game::Game};
 use glam::{Mat4, Vec3};
 use glutin::{
     config::ConfigTemplateBuilder, context::{
@@ -180,11 +180,11 @@ impl Game for ApplicationDemo {
         // add models mesh
         {
             let path = format!(
-                "{}/../engine/resources/monkey/scene.gltf",
+                "{}/../bromine_engine/resources/monkey/scene.gltf",
                 std::env!("CARGO_MANIFEST_DIR")
             );
 
-            for gl_model in GlftFile::get_models(path) {
+            for gl_model in GlftFile::get_models(path).unwrap() {
                 let entity = self.world.spawn_entity();
                 self.world.register_component(entity, Model::from(gl_model));
             }

@@ -1,4 +1,4 @@
-use engine::{ecs::Resource, impl_resource, render::prelude::*};
+use bromine_engine::{macros::Resource, render::prelude::*};
 use glam::Mat4;
 use std::{collections::HashSet, ops::AddAssign};
 use winit::keyboard::KeyCode;
@@ -35,28 +35,25 @@ macro_rules! impl_newtype {
     };
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, Resource)]
 /// World projection matrix
 pub struct Projection(Mat4);
 
-impl_resource!(Projection);
 impl_newtype!(Projection, Mat4);
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, Resource)]
 /// Camera view matrix
 pub struct View(Mat4);
 
-impl_resource!(View);
 impl_newtype!(View, Mat4);
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Resource)]
 /// Collection of pressed keys since since last update
 pub struct PressedKeys(HashSet<KeyCode>);
 
-impl_resource!(PressedKeys);
 impl_newtype!(PressedKeys, HashSet<KeyCode>);
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, Resource)]
 /// Mouse displacement since last update
 pub struct MouseDelta(f64, f64);
 
@@ -85,9 +82,7 @@ impl AddAssign<(f64, f64)> for MouseDelta {
     }
 }
 
-impl_resource!(MouseDelta);
-
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, Resource)]
 pub struct TimeDelta(f64);
 
 impl TimeDelta {
@@ -96,10 +91,9 @@ impl TimeDelta {
     }
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, Resource)]
 pub struct Time(f32);
 
-impl_resource!(Time);
 impl_newtype!(Time, f32);
 
 impl AddAssign<f32> for Time {
@@ -108,8 +102,7 @@ impl AddAssign<f32> for Time {
     }
 }
 
-impl_resource!(TimeDelta);
 impl_newtype!(TimeDelta, f64);
 
+#[derive(Resource)]
 pub struct SceneProgram(pub GlProgram);
-impl_resource!(SceneProgram);

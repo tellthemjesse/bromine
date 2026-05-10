@@ -4,7 +4,7 @@ use crate::ecs::{
         camera::{s_camera_control, s_camera_view}, render::s_render
     }
 };
-use engine::{query_resource, window::game::Game};
+use bromine_engine::{query_resource, window::game::Game};
 use glam::Mat4;
 use glutin::{context::PossiblyCurrentGlContext, prelude::GlSurface};
 use std::num::NonZeroU32;

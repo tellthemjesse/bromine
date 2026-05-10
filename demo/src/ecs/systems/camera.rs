@@ -1,7 +1,7 @@
 use crate::ecs::{
     components::{Camera, Position}, resources::{MouseDelta, PressedKeys, TimeDelta, View}
 };
-use engine::{ecs::World, query, query_resource};
+use bromine_engine::{ecs::World, query, query_resource};
 use glam::{Mat4, Vec3, Vec3Swizzles};
 use std::f32::consts::TAU;
 use winit::keyboard::KeyCode;

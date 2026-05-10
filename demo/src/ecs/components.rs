@@ -1,9 +1,9 @@
 use crate::impl_newtype;
-use engine::{ecs::Component, impl_component, render::GlModel};
+use bromine_engine::{macros::Component, render::GlModel};
 use glam::Vec3;
 use std::ops::AddAssign;
 
-#[derive(Debug)]
+#[derive(Debug, Component)]
 pub struct Camera {
     pub yaw: f32,
     pub pitch: f32,
@@ -40,9 +40,7 @@ impl Camera {
     }
 }
 
-impl_component!(Camera);
-
-#[derive(Debug)]
+#[derive(Debug, Component)]
 pub struct Position(Vec3);
 
 impl AddAssign<Vec3> for Position {
@@ -52,8 +50,7 @@ impl AddAssign<Vec3> for Position {
 }
 
 impl_newtype!(Position, Vec3);
-impl_component!(Position);
 
+#[derive(Component)]
 pub struct Model(GlModel);
 impl_newtype!(Model, GlModel);
-impl_component!(Model);

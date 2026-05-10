@@ -148,7 +148,6 @@ dependencies = [
 name = "bromine_macro"
 version = "0.1.0"
 dependencies = [
- "bromine_ecs",
  "quote",
  "syn",
 ]
