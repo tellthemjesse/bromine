@@ -69,21 +69,21 @@ mod test {
 
     #[test]
     fn test_query() {
-        use crate::ecs::impl_component;
+        use crate::ecs::implement_component;
 
         let mut world = World::new();
         let entity = world.spawn_entity();
 
         #[derive(Clone, Copy, PartialEq, Eq, Debug)]
         struct Position(i32, i32);
-        impl_component!(Position);
+        implement_component!(Position);
 
         let position = Position(5, 8);
         world.register_component(entity, position);
 
         #[derive(Clone, Copy, PartialEq, Eq, Debug)]
         struct Enemy;
-        impl_component!(Enemy);
+        implement_component!(Enemy);
 
         let is_enemy = Enemy;
         world.register_component(entity, is_enemy);
